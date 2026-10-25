@@ -1,6 +1,8 @@
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using RestaurantManagement.Business.Options;
 using RestaurantManagement.Business.Services;
 using RestaurantManagement.Web.Models;
 
@@ -11,13 +13,16 @@ public class ReportController : Controller
 {
     private readonly IReportService _reportService;
     private readonly ILogger<ReportController> _logger;
+    private readonly TimeZoneInfo _timeZone;
 
     public ReportController(
         IReportService reportService,
-        ILogger<ReportController> logger)
+        ILogger<ReportController> logger,
+        IOptions<RestaurantRulesOptions> options)
     {
         _reportService = reportService;
         _logger = logger;
+        _timeZone = TimeZoneInfo.FindSystemTimeZoneById(options.Value.TimeZone);
     }
 
     [HttpGet]
@@ -29,8 +34,9 @@ public class ReportController : Controller
     [HttpGet]
     public async Task<IActionResult> Revenue(DateOnly? fromDate, DateOnly? toDate)
     {
-        var from = fromDate ?? DateOnly.FromDateTime(DateTime.Now.AddDays(-30));
-        var to = toDate ?? DateOnly.FromDateTime(DateTime.Now);
+        var today = GetRestaurantDate();
+        var from = fromDate ?? today.AddDays(-30);
+        var to = toDate ?? today;
 
         var report = await _reportService.GetRevenueReportAsync(from, to);
 
@@ -47,8 +53,9 @@ public class ReportController : Controller
     [HttpGet]
     public async Task<IActionResult> ExportRevenueCsv(DateOnly? fromDate, DateOnly? toDate)
     {
-        var from = fromDate ?? DateOnly.FromDateTime(DateTime.Now.AddDays(-30));
-        var to = toDate ?? DateOnly.FromDateTime(DateTime.Now);
+        var today = GetRestaurantDate();
+        var from = fromDate ?? today.AddDays(-30);
+        var to = toDate ?? today;
 
         var report = await _reportService.GetRevenueReportAsync(from, to);
 
@@ -71,8 +78,9 @@ public class ReportController : Controller
     [HttpGet]
     public async Task<IActionResult> BestSellers(DateOnly? fromDate, DateOnly? toDate)
     {
-        var from = fromDate ?? DateOnly.FromDateTime(DateTime.Now.AddDays(-30));
-        var to = toDate ?? DateOnly.FromDateTime(DateTime.Now);
+        var today = GetRestaurantDate();
+        var from = fromDate ?? today.AddDays(-30);
+        var to = toDate ?? today;
 
         var report = await _reportService.GetBestSellersReportAsync(from, to);
 
@@ -84,5 +92,11 @@ public class ReportController : Controller
         };
 
         return View(viewModel);
+    }
+
+    private DateOnly GetRestaurantDate()
+    {
+        var localNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _timeZone);
+        return DateOnly.FromDateTime(localNow);
     }
 }
