@@ -1,0 +1,103 @@
+@model BookingConfirmationViewModel
+@{
+    ViewData["Title"] = $"Thanh toán cọc đặt bàn {Model.Booking.BookingCode} (BM14)";
+}
+
+<div class="row justify-content-center py-3">
+    <div class="col-lg-8">
+        <div class="text-center mb-4">
+            <span class="badge bg-danger px-3 py-1 rounded-pill mb-2 fw-semibold">Biểu mẫu BM14</span>
+            <h2 class="fw-bold brand-serif text-dark">Thanh Toán Tiền Cọc Đặt Bàn</h2>
+            <p class="text-muted small">Quét mã VietQR bằng ứng dụng ngân hàng hoặc ví điện tử bất kỳ để hoàn tất giữ chỗ</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Left: VietQR Image & Timer -->
+            <div class="col-md-6 text-center">
+                <div class="card card-senviet p-4 h-100">
+                    <!-- Countdown timer -->
+                    <div class="alert alert-danger py-2 px-3 small rounded-3 mb-3 d-inline-block">
+                        <i class="bi bi-clock-history me-1"></i> Thời gian giữ chỗ còn lại:
+                        <strong id="holdTimer" class="fs-6">14:59</strong>
+                    </div>
+
+                    <div class="p-2 border rounded-3 bg-white shadow-sm mb-3">
+                        <img src="@Model.VietQrUrl" alt="VietQR Đặt Bàn" class="img-fluid rounded" style="max-height: 280px;" />
+                    </div>
+
+                    <div class="small text-muted">
+                        <i class="bi bi-camera me-1"></i> Mở App Ngân hàng bất kỳ &bull; Chọn <strong>Quét mã QR</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Bank Transfer Details & Confirm Action -->
+            <div class="col-md-6">
+                <div class="card card-senviet p-4 h-100">
+                    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-bank me-2 text-danger"></i>Thông Tin Chuyển Khoản</h5>
+
+                    <div class="p-3 bg-light rounded-3 mb-3 small">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Ngân hàng:</span>
+                            <strong>MB Bank (Quân Đội)</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Chủ tài khoản:</span>
+                            <strong class="text-uppercase">NHA HANG SEN VIET</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Số tài khoản:</span>
+                            <strong class="text-primary fs-6">09123456789</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Số tiền cọc:</span>
+                            <strong class="text-danger fs-5">@Model.Booking.DepositAmount.ToString("N0") VNĐ</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Nội dung CK:</span>
+                            <strong class="text-danger">COC @Model.Booking.BookingCode</strong>
+                        </div>
+                    </div>
+
+                    <div class="p-3 border rounded-3 bg-white mb-4 small">
+                        <div class="fw-bold text-dark mb-1">Chi tiết đặt bàn:</div>
+                        <div class="text-muted">Khách hàng: <strong>@Model.Booking.CustomerName</strong> (@Model.Booking.PhoneNumber)</div>
+                        <div class="text-muted">Bàn: <strong>@Model.Booking.TableNumber (@Model.Booking.AreaName)</strong> &bull; @Model.Booking.GuestCount khách</div>
+                        <div class="text-muted">Thời gian: <strong>@Model.Booking.BookingDateTimeUtc.ToLocalTime().ToString("HH:mm dd/MM/yyyy")</strong></div>
+                    </div>
+
+                    <form asp-action="ConfirmPayment" method="post" class="mt-auto">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="bookingId" value="@Model.Booking.BookingId" />
+                        <input type="hidden" name="transactionRef" value="TXN-@Guid.NewGuid().ToString("N")[..8].ToUpper()" />
+
+                        <button type="submit" class="btn btn-sen-primary w-100 py-3 fw-bold shadow">
+                            <i class="bi bi-check-circle-fill me-1"></i> Tôi Đã Chuyển Khoản Thành Công
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let duration = 15 * 60; // 15 minutes
+        const timerEl = document.getElementById('holdTimer');
+
+        const interval = setInterval(() => {
+            duration--;
+            if (duration <= 0) {
+                clearInterval(interval);
+                timerEl.textContent = '00:00 (Hết hạn)';
+                alert('Thời hạn giữ chỗ 15 phút đã kết thúc. Vui lòng thực hiện đặt lại bàn.');
+                window.location.href = '@Url.Action("Search", "Booking")';
+            } else {
+                const minutes = Math.floor(duration / 60);
+                const seconds = duration % 60;
+                timerEl.textContent = (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+            }
+        }, 1000);
+    </script>
+}

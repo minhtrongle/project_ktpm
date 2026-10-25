@@ -1,0 +1,147 @@
+@model LookupBookingViewModel
+@{
+    ViewData["Title"] = "Tra cứu & Hủy đặt bàn (BM15)";
+}
+
+<div class="row justify-content-center py-3">
+    <div class="col-lg-8">
+        <div class="text-center mb-4">
+            <span class="badge bg-danger px-3 py-1 rounded-pill mb-2 fw-semibold">Biểu mẫu BM15</span>
+            <h2 class="fw-bold brand-serif text-dark">Tra Cứu & Hủy Đặt Bàn</h2>
+            <p class="text-muted small">Nhập mã đặt bàn và số điện thoại đã đăng ký để kiểm tra tình trạng chỗ ngồi</p>
+        </div>
+
+        <!-- Lookup Form -->
+        <div class="card card-senviet p-4 shadow-sm mb-4">
+            <form asp-action="Lookup" method="get">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label asp-for="BookingCode" class="form-label small fw-semibold">Mã đặt bàn *</label>
+                        <input asp-for="BookingCode" class="form-control" placeholder="Ví dụ: BK-20261014-XXXX" required />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="PhoneNumber" class="form-label small fw-semibold">Số điện thoại *</label>
+                        <input asp-for="PhoneNumber" class="form-control" placeholder="09xxxxxxxx" required />
+                    </div>
+
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-sen-primary w-100 py-2 fw-semibold">
+                            <i class="bi bi-search me-1"></i> Tra cứu (BM15)
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Section -->
+        @if (Model.HasSearched && Model.Booking != null)
+        {
+            var b = Model.Booking;
+            <div class="card card-senviet p-4 shadow-sm border-start border-primary border-4 mb-4">
+                <div class="d-flex justify-content-between align-items-start mb-3 pb-2 border-bottom">
+                    <div>
+                        <h4 class="fw-bold mb-1 text-dark">Mã Đặt Bàn: @b.BookingCode</h4>
+                        <span class="text-muted small">Thời gian tạo: @b.BookingDateTimeUtc.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")</span>
+                    </div>
+                    <span class="badge @(b.Status == BookingStatus.Confirmed ? "bg-success fs-6" : b.Status == BookingStatus.Cancelled ? "bg-danger fs-6" : "bg-warning text-dark fs-6")">
+                        @b.Status switch
+                        {
+                            BookingStatus.Confirmed => "Đã xác nhận cọc",
+                            BookingStatus.CheckedIn => "Đang dùng bữa tại nhà hàng",
+                            BookingStatus.Cancelled => "Đã hủy đặt bàn",
+                            BookingStatus.PendingPayment => "Chờ thanh toán cọc",
+                            _ => b.Status.ToString()
+                        }
+                    </span>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-6">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="text-muted small">Khách hàng:</div>
+                            <strong class="fs-6 text-dark">@b.CustomerName</strong>
+                            <div class="text-muted small mt-1">SĐT: @b.PhoneNumber</div>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-6">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="text-muted small">Vị trí bàn & Số khách:</div>
+                            <strong class="fs-6 text-danger">Bàn @b.TableNumber (@b.AreaName)</strong>
+                            <div class="text-muted small mt-1">Số lượng khách: @b.GuestCount người</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-light rounded-3 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted small">Số tiền cọc đã thanh toán:</span>
+                        <strong class="text-success fs-5">@b.DepositAmount.ToString("N0") VNĐ</strong>
+                    </div>
+                    <small class="text-muted">
+                        Tiền cọc này sẽ được trừ thẳng vào hóa đơn khi quý khách đến dùng bữa tại nhà hàng.
+                    </small>
+                </div>
+
+                <!-- Cancellation Policy & Actions -->
+                @if (b.Status == BookingStatus.Confirmed)
+                {
+                    <div class="alert alert-info border-0 p-3 rounded-3 mb-4">
+                        <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-info-circle me-1 text-info"></i>Chính Sách Hoàn Tiền Khi Hủy Bàn:</h6>
+                        <ul class="mb-2 small">
+                            <li>Hủy trước giờ hẹn từ 2 tiếng trở lên: <strong>Hoàn 100% tiền cọc (@b.DepositAmount.ToString("N0") VNĐ)</strong>.</li>
+                            <li>Hủy cận giờ (trong vòng 2 tiếng trước giờ hẹn): <strong>Hoàn 50% tiền cọc (@((b.DepositAmount * 0.5m).ToString("N0")) VNĐ)</strong>.</li>
+                            <li>Hủy sau giờ hẹn hoặc quá giờ không đến: <strong>Không hoàn tiền cọc (0%)</strong>.</li>
+                        </ul>
+                        <div class="alert alert-light border mb-0 small">
+                            Trạng thái hiện tại nếu quý khách hủy ngay bây giờ:
+                            <strong class="text-danger">@Model.RefundPolicyNote</strong>
+                            (Số tiền ước tính hoàn lại: <strong class="text-success">@Model.EstimatedRefund.ToString("N0") VNĐ</strong>)
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-outline-danger w-100 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#cancelBookingModal">
+                        <i class="bi bi-x-circle me-1"></i> Yêu Cầu Hủy Đặt Bàn Này (BM15)
+                    </button>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal Hủy Đặt Bàn -->
+@if (Model.Booking != null)
+{
+    <div class="modal fade" id="cancelBookingModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content card-senviet">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-danger">Xác Nhận Hủy Đặt Bàn</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form asp-action="Cancel" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="bookingCode" value="@Model.Booking.BookingCode" />
+                    <input type="hidden" name="phoneNumber" value="@Model.Booking.PhoneNumber" />
+
+                    <div class="modal-body">
+                        <div class="alert alert-warning small mb-3">
+                            Bạn có chắc chắn muốn hủy đặt bàn <strong>@Model.Booking.BookingCode</strong>?
+                            Chính sách hoàn tiền sẽ được áp dụng theo thời gian thực tế bạn xác nhận hủy.
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Lý do hủy bàn (tùy chọn)</label>
+                            <textarea name="reason" class="form-control" rows="2" placeholder="Ví dụ: Bận việc đột xuất, đổi lịch..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                        <button type="submit" class="btn btn-danger fw-semibold">Xác nhận hủy đặt bàn</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}

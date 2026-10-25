@@ -1,0 +1,81 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Đăng nhập Hệ thống Quản lý";
+}
+
+<div class="row justify-content-center py-4">
+    <div class="col-md-5 col-lg-4">
+        <div class="card card-senviet p-4 shadow-sm border-0">
+            <div class="text-center mb-4">
+                <div class="display-5 text-danger mb-2"><i class="bi bi-flower1"></i></div>
+                <h3 class="fw-bold brand-serif mb-1">Cổng Nhân Viên</h3>
+                <p class="text-muted small">Đăng nhập ca làm việc & vận hành Nhà hàng Sen Việt</p>
+            </div>
+
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+            {
+                <div class="alert alert-danger py-2 px-3 small rounded-3" role="alert">
+                    <div asp-validation-summary="All" class="mb-0"></div>
+                </div>
+            }
+
+            <form asp-action="Login" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ReturnUrl" />
+
+                <div class="mb-3">
+                    <label asp-for="Username" class="form-label fw-semibold small">Tên đăng nhập</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-muted"></i></span>
+                        <input asp-for="Username" id="loginUsername" class="form-control border-start-0 ps-0" placeholder="Nhập tên đăng nhập..." autofocus />
+                    </div>
+                    <span asp-validation-for="Username" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="Password" class="form-label fw-semibold small">Mật khẩu</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-key text-muted"></i></span>
+                        <input asp-for="Password" id="loginPassword" type="password" class="form-control border-start-0 ps-0" placeholder="Nhập mật khẩu..." />
+                    </div>
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+
+                <button type="submit" class="btn btn-sen-primary w-100 py-2 fw-semibold">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Đăng nhập hệ thống
+                </button>
+            </form>
+
+            <div class="mt-4 pt-3 border-top">
+                <p class="text-muted text-center small fw-semibold mb-2">Tài khoản mẫu để kiểm thử nhanh:</p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-danger text-start d-flex justify-content-between align-items-center" onclick="fillDemo('quanly', 'Admin@123')">
+                        <span><i class="bi bi-shield-lock me-1"></i> Quản lý (quanly)</span>
+                        <span class="badge bg-danger">PIN: 1234</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-success text-start d-flex justify-content-between align-items-center" onclick="fillDemo('thungan', 'Admin@123')">
+                        <span><i class="bi bi-cash-coin me-1"></i> Thu ngân (thungan)</span>
+                        <span class="badge bg-success">Ca POS</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary text-start d-flex justify-content-between align-items-center" onclick="fillDemo('phucvu', 'Admin@123')">
+                        <span><i class="bi bi-person-badge me-1"></i> Phục vụ bàn (phucvu)</span>
+                        <span class="badge bg-primary">40 Bàn</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning text-dark text-start d-flex justify-content-between align-items-center" onclick="fillDemo('daubep', 'Admin@123')">
+                        <span><i class="bi bi-fire me-1"></i> Đầu bếp (daubep)</span>
+                        <span class="badge bg-warning text-dark">KDS</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function fillDemo(username, password) {
+            document.getElementById('loginUsername').value = username;
+            document.getElementById('loginPassword').value = password;
+        }
+    </script>
+}

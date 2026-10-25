@@ -1,0 +1,93 @@
+@model MenuItemFormViewModel
+@{
+    ViewData["Title"] = "Thêm món mới vào thực đơn (BM07)";
+    var categories = ViewBag.Categories as List<CategoryDto> ?? new List<CategoryDto>();
+}
+
+<div class="row justify-content-center py-3">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1 brand-serif">Thêm Món Mới (BM07)</h3>
+                <p class="text-muted small mb-0">Nhập thông tin món ăn, đồ uống mới vào danh mục thực đơn</p>
+            </div>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Danh sách thực đơn
+            </a>
+        </div>
+
+        <div class="card card-senviet p-4 shadow-sm">
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+            {
+                <div class="alert alert-danger py-2 px-3 small rounded-3 mb-4" role="alert">
+                    <div asp-validation-summary="All" class="mb-0"></div>
+                </div>
+            }
+
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label asp-for="ItemCode" class="form-label small fw-semibold">Mã món (duy nhất) *</label>
+                        <input asp-for="ItemCode" class="form-control" placeholder="Ví dụ: M14, D05..." required />
+                        <span asp-validation-for="ItemCode" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-8">
+                        <label asp-for="Name" class="form-label small fw-semibold">Tên món ăn / Đồ uống *</label>
+                        <input asp-for="Name" class="form-control" placeholder="Ví dụ: Gỏi hoa chuối bắp bò..." required />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label asp-for="CategoryId" class="form-label small fw-semibold">Danh mục món *</label>
+                        <select asp-for="CategoryId" class="form-select" required>
+                            @foreach (var c in categories)
+                            {
+                                <option value="@c.Id">@c.CategoryName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="Station" class="form-label small fw-semibold">Trạm chế biến bếp *</label>
+                        <select asp-for="Station" class="form-select">
+                            <option value="@KitchenStation.HotKitchen">Bếp Nóng (Hot Kitchen)</option>
+                            <option value="@KitchenStation.ColdKitchen">Bếp Lạnh (Cold Kitchen)</option>
+                            <option value="@KitchenStation.Bar">Quầy Bar (Pha chế)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="Unit" class="form-label small fw-semibold">Đơn vị tính *</label>
+                        <input asp-for="Unit" class="form-control" placeholder="Phần, Đĩa, Ly, Nồi..." required />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Price" class="form-label small fw-semibold">Đơn giá bán (VNĐ) *</label>
+                    <div class="input-group">
+                        <input asp-for="Price" type="number" step="1000" min="1000" class="form-control" placeholder="Ví dụ: 85000" required />
+                        <span class="input-group-text bg-light">VNĐ</span>
+                    </div>
+                    <span asp-validation-for="Price" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="Description" class="form-label small fw-semibold">Mô tả nguyên liệu / hương vị</label>
+                    <textarea asp-for="Description" class="form-control" rows="2" placeholder="Ghi chú thêm về món ăn..."></textarea>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a asp-action="Index" class="btn btn-light border px-4">Hủy</a>
+                    <button type="submit" class="btn btn-sen-primary px-4 fw-semibold shadow">
+                        <i class="bi bi-check-lg me-1"></i> Lưu Món Mới
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

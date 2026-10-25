@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RestaurantManagement.Common\RestaurantManagement.Common.csproj" />
+    <ProjectReference Include="..\RestaurantManagement.Business\RestaurantManagement.Business.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.8">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

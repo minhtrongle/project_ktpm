@@ -1,0 +1,106 @@
+@model CreateBookingViewModel
+@{
+    ViewData["Title"] = $"Đăng ký đặt bàn {Model.TableCode} (BM13)";
+}
+
+<div class="row justify-content-center py-3">
+    <div class="col-lg-8">
+        <div class="text-center mb-4">
+            <span class="badge bg-danger px-3 py-1 rounded-pill mb-2 fw-semibold">Biểu mẫu BM13</span>
+            <h2 class="fw-bold brand-serif text-dark">Phiếu Đăng Ký Đặt Bàn</h2>
+            <p class="text-muted small">Điền thông tin liên hệ để Nhà hàng Sen Việt chuẩn bị đón tiếp chu đáo nhất</p>
+        </div>
+
+        <div class="card card-senviet p-4 shadow-sm">
+            <!-- Booking Summary Banner -->
+            <div class="p-3 bg-light rounded-3 mb-4 border">
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-3 text-center text-md-start">
+                        <span class="badge bg-danger fs-6 mb-1">Bàn @Model.TableCode</span>
+                        <div class="small text-muted">@Model.AreaName</div>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="row text-center text-md-start g-2 small">
+                            <div class="col-sm-4">
+                                <span class="text-muted d-block">Ngày dùng bữa:</span>
+                                <strong>@Model.BookingDate.ToString("dd/MM/yyyy")</strong>
+                            </div>
+                            <div class="col-sm-4">
+                                <span class="text-muted d-block">Giờ hẹn:</span>
+                                <strong>@Model.BookingTime.ToString("HH:mm")</strong>
+                            </div>
+                            <div class="col-sm-4">
+                                <span class="text-muted d-block">Số lượng khách:</span>
+                                <strong>@Model.GuestCount khách</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+            {
+                <div class="alert alert-danger py-2 px-3 small rounded-3 mb-4" role="alert">
+                    <div asp-validation-summary="All" class="mb-0"></div>
+                </div>
+            }
+
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="TableId" />
+                <input type="hidden" asp-for="TableCode" />
+                <input type="hidden" asp-for="AreaName" />
+                <input type="hidden" asp-for="Capacity" />
+                <input type="hidden" asp-for="BookingDate" />
+                <input type="hidden" asp-for="BookingTime" />
+                <input type="hidden" asp-for="GuestCount" />
+                <input type="hidden" asp-for="DepositAmount" />
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="CustomerName" class="form-label small fw-semibold">Họ và tên khách hàng *</label>
+                        <input asp-for="CustomerName" class="form-control" placeholder="Ví dụ: Nguyễn Văn A" required />
+                        <span asp-validation-for="CustomerName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="PhoneNumber" class="form-label small fw-semibold">Số điện thoại liên hệ *</label>
+                        <input asp-for="PhoneNumber" class="form-control" placeholder="Ví dụ: 0912345678" required />
+                        <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label small fw-semibold">Địa chỉ Email (nhận mã xác nhận và hóa đơn cọc)</label>
+                    <input asp-for="Email" class="form-control" type="email" placeholder="example@email.com" />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="SpecialRequests" class="form-label small fw-semibold">Yêu cầu đặc biệt (tùy chọn)</label>
+                    <textarea asp-for="SpecialRequests" class="form-control" rows="2" placeholder="Ví dụ: Trang trí tiệc sinh nhật, cần ghế trẻ em, dị ứng hải sản..."></textarea>
+                </div>
+
+                <!-- Deposit Rules Card -->
+                <div class="alert alert-warning border-0 p-3 rounded-3 mb-4">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="fw-bold text-dark"><i class="bi bi-shield-check me-1 text-warning"></i>Tiền Cọc Giữ Chỗ Cần Thanh Toán:</span>
+                        <span class="fs-4 fw-bold text-danger">@Model.DepositAmount.ToString("N0") VNĐ</span>
+                    </div>
+                    <ul class="mb-0 small text-dark opacity-90 ps-3">
+                        <li>Quy định nhà hàng: Dưới 6 khách cọc <strong>200.000 VNĐ</strong>; từ 6 khách trở lên cọc <strong>500.000 VNĐ</strong>.</li>
+                        <li>Bàn sẽ được giữ tạm thời trong vòng <strong>15 phút</strong> để quý khách hoàn tất chuyển khoản VietQR.</li>
+                        <li>Tiền cọc sẽ được <strong>khấu trừ 100%</strong> trực tiếp vào hóa đơn thanh toán bữa ăn khi dùng bữa.</li>
+                    </ul>
+                </div>
+
+                <div class="d-flex gap-2 justify-content-end">
+                    <a asp-action="Search" class="btn btn-light border px-4">Quay lại</a>
+                    <button type="submit" class="btn btn-sen-primary px-4 fw-semibold shadow">
+                        <i class="bi bi-qr-code me-1"></i> Xác Nhận & Thanh Toán Cọc (BM14) &rarr;
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

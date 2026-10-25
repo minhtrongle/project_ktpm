@@ -1,0 +1,312 @@
+@model OrderTableViewModel
+@{
+    ViewData["Title"] = $"Gọi món - Bàn {Model.Table.TableNumber} (BM01)";
+    var pendingItems = Model.Order.Items.Where(i => i.Status == OrderItemStatus.Pending).ToList();
+    var sentItems = Model.Order.Items.Where(i => i.Status != OrderItemStatus.Pending && i.Status != OrderItemStatus.Cancelled).ToList();
+    var cancelledItems = Model.Order.Items.Where(i => i.Status == OrderItemStatus.Cancelled || i.Status == OrderItemStatus.Returned).ToList();
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <a asp-controller="Floor" asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Sơ đồ bàn
+            </a>
+            <h3 class="fw-bold mb-0 brand-serif">Gọi Món: Bàn @Model.Table.TableNumber</h3>
+            <span class="badge bg-danger">@Model.Table.AreaName</span>
+            <span class="badge bg-light text-dark border">Order: @Model.Order.OrderCode</span>
+        </div>
+        <small class="text-muted">Phục vụ: @Model.Order.StaffName &bull; Số khách: @Model.Order.GuestCount người &bull; Giờ vào: @Model.Order.CreatedAtUtc.ToLocalTime().ToString("HH:mm dd/MM")</small>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a asp-action="PreBill" asp-route-orderId="@Model.Order.Id" class="btn btn-outline-primary fw-semibold">
+            <i class="bi bi-printer me-1"></i> In Phiếu Tạm Tính (BM02)
+        </a>
+        <a asp-controller="Invoice" asp-action="Checkout" asp-route-orderId="@Model.Order.Id" class="btn btn-success fw-semibold">
+            <i class="bi bi-cash-stack me-1"></i> Thanh Toán (BM05) &rarr;
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left: Menu Items Catalog -->
+    <div class="col-lg-7">
+        <div class="card card-senviet p-3 mb-3">
+            <div class="d-flex flex-wrap gap-1 mb-3">
+                <a asp-action="Table" asp-route-tableId="@Model.Table.Id" class="btn btn-sm @(Model.SelectedCategoryId == null ? "btn-danger" : "btn-light border")">
+                    Tất cả danh mục
+                </a>
+                @foreach (var cat in Model.Categories)
+                {
+                    <a asp-action="Table" asp-route-tableId="@Model.Table.Id" asp-route-categoryId="@cat.Id" class="btn btn-sm @(Model.SelectedCategoryId == cat.Id ? "btn-danger" : "btn-light border")">
+                        @cat.CategoryName (@cat.ItemCount)
+                    </a>
+                }
+            </div>
+
+            <div class="row row-cols-1 row-cols-sm-2 g-3">
+                @foreach (var dish in Model.MenuItems)
+                {
+                    <div class="col">
+                        <div class="card p-3 h-100 border shadow-none bg-light bg-opacity-50">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.7rem;">@dish.ItemCode &bull; @dish.KitchenStation</span>
+                                <span class="fw-bold text-danger">@dish.Price.ToString("N0") đ</span>
+                            </div>
+                            <h6 class="fw-bold mb-1 text-dark">@dish.ItemName</h6>
+                            <small class="text-muted mb-2 d-block text-truncate">@(dish.Description ?? "Món ngon Sen Việt")</small>
+
+                            <!-- Add to Order Form -->
+                            <form asp-action="AddItem" method="post" class="mt-auto">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="OrderId" value="@Model.Order.Id" />
+                                <input type="hidden" name="MenuItemId" value="@dish.Id" />
+                                <div class="d-flex gap-1">
+                                    <input type="number" name="Quantity" value="1" min="1" max="50" class="form-control form-control-sm text-center" style="width: 55px;" />
+                                    <input type="text" name="Note" placeholder="Ghi chú (ít cay...)" class="form-control form-control-sm" />
+                                    <button type="submit" class="btn btn-sm btn-sen-primary px-2" title="Thêm vào bàn">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Current Order Bill & Kitchen KOT -->
+    <div class="col-lg-5">
+        <div class="card card-senviet p-3 sticky-top" style="top: 80px;">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-cart3 me-2 text-danger"></i>Món Đang Gọi</h5>
+                <span class="badge bg-dark">@Model.Order.Items.Count món</span>
+            </div>
+
+            <!-- Pending Items (Chưa gửi bếp) -->
+            @if (pendingItems.Any())
+            {
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="fw-bold text-warning text-uppercase"><i class="bi bi-hourglass-split me-1"></i>Chờ gửi bếp (@pendingItems.Count)</small>
+                    </div>
+
+                    <div class="list-group list-group-flush mb-2">
+                        @foreach (var item in pendingItems)
+                        {
+                            <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center border-0 border-bottom">
+                                <div>
+                                    <div class="fw-semibold text-dark">@item.ItemName</div>
+                                    <small class="text-muted">@item.Quantity x @item.UnitPrice.ToString("N0") đ = <strong class="text-danger">@item.SubTotal.ToString("N0") đ</strong></small>
+                                    @if (!string.IsNullOrEmpty(item.Note))
+                                    {
+                                        <div class="text-warning small fst-italic"><i class="bi bi-pencil me-1"></i>@item.Note</div>
+                                    }
+                                </div>
+                                <div class="d-flex align-items-center gap-1">
+                                    <form asp-action="UpdateQuantity" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderDetailId" value="@item.Id" />
+                                        <input type="hidden" name="orderId" value="@Model.Order.Id" />
+                                        <input type="hidden" name="quantity" value="0" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger p-1" title="Xóa món">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <form asp-action="SendToKitchen" method="post" class="mt-2">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="orderId" value="@Model.Order.Id" />
+                        <button type="submit" class="btn btn-warning w-100 py-2 fw-bold text-dark shadow-sm">
+                            <i class="bi bi-fire me-1"></i> Gửi bếp in KOT (@pendingItems.Count món)
+                        </button>
+                    </form>
+                </div>
+            }
+
+            <!-- Sent / Cooking Items (Đã gửi bếp) -->
+            <div class="mb-3">
+                <small class="fw-bold text-success text-uppercase mb-2 d-block"><i class="bi bi-check2-all me-1"></i>Đã gửi bếp / Đang chế biến (@sentItems.Count)</small>
+
+                @if (!sentItems.Any() && !pendingItems.Any())
+                {
+                    <div class="text-center py-4 text-muted small">
+                        Chưa có món nào được gọi. Vui lòng chọn món từ menu bên trái.
+                    </div>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var item in sentItems)
+                        {
+                            <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center border-0 border-bottom">
+                                <div>
+                                    <div class="fw-semibold text-dark">
+                                        @item.ItemName
+                                        <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.65rem;">@item.Status</span>
+                                    </div>
+                                    <small class="text-muted">@item.Quantity x @item.UnitPrice.ToString("N0") đ = <strong class="text-dark">@item.SubTotal.ToString("N0") đ</strong></small>
+                                    @if (!string.IsNullOrEmpty(item.Note))
+                                    {
+                                        <div class="text-muted small fst-italic">Note: @item.Note</div>
+                                    }
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        Thao tác
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm">
+                                        <li>
+                                            <button class="dropdown-item small text-primary" onclick="openChangeItemModal(@item.Id, '@item.ItemName')">
+                                                <i class="bi bi-arrow-repeat me-2"></i>Đổi món
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item small text-danger" onclick="openReturnItemModal(@item.Id, '@item.ItemName', @item.Quantity)">
+                                                <i class="bi bi-x-circle me-2"></i>Trả món / Hủy
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Order Total Summary -->
+            <div class="bg-light p-3 rounded-3 mt-auto">
+                <div class="d-flex justify-content-between mb-1 small">
+                    <span class="text-muted">Tổng tiền món:</span>
+                    <span class="fw-semibold">@Model.Order.TotalItemsAmount.ToString("N0") VNĐ</span>
+                </div>
+                @if (Model.Order.DepositAmount > 0)
+                {
+                    <div class="d-flex justify-content-between mb-1 small text-success">
+                        <span>Đã trừ cọc đặt bàn:</span>
+                        <span>-@Model.Order.DepositAmount.ToString("N0") VNĐ</span>
+                    </div>
+                }
+                <div class="d-flex justify-content-between pt-2 border-top fw-bold text-dark">
+                    <span>Tạm tính ước lượng:</span>
+                    <span class="text-danger fs-5">
+                        @Math.Max(0, Model.Order.TotalItemsAmount - Model.Order.DepositAmount).ToString("N0") VNĐ
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Đổi Món -->
+<div class="modal fade" id="changeItemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content card-senviet">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Đổi Món (Cần Quản lý PIN)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="ChangeItem" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="OrderId" value="@Model.Order.Id" />
+                <input type="hidden" id="changeOrderDetailId" name="OrderDetailId" />
+
+                <div class="modal-body">
+                    <div class="alert alert-light border small mb-3">
+                        Món hiện tại: <strong id="changeOldItemName" class="text-danger"></strong>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Chọn món thay thế mới *</label>
+                        <select name="NewMenuItemId" class="form-select" required>
+                            @foreach (var dish in Model.MenuItems)
+                            {
+                                <option value="@dish.Id">@dish.ItemName (@dish.Price.ToString("N0") đ)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Lý do đổi món *</label>
+                        <input type="text" name="Reason" class="form-control" placeholder="Khách muốn đổi sang món khác..." required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Mã PIN Quản lý (xác nhận) *</label>
+                        <input type="password" name="ManagerPin" class="form-control" placeholder="Nhập PIN (mặc định: 1234)..." required />
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-sen-primary fw-semibold">Xác nhận đổi món</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Trả/Hủy Món -->
+<div class="modal fade" id="returnItemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content card-senviet">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger">Trả / Hủy Món (Cần Quản lý PIN)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="ReturnItem" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="OrderId" value="@Model.Order.Id" />
+                <input type="hidden" id="returnOrderDetailId" name="OrderDetailId" />
+
+                <div class="modal-body">
+                    <div class="alert alert-light border small mb-3">
+                        Món cần hủy: <strong id="returnItemName" class="text-danger"></strong>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Số lượng hủy *</label>
+                        <input type="number" id="returnQuantity" name="ReturnQuantity" min="1" class="form-control" value="1" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Lý do hủy/trả món *</label>
+                        <input type="text" name="Reason" class="form-control" placeholder="Khách đợi lâu / món lỗi..." required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Mã PIN Quản lý (xác nhận) *</label>
+                        <input type="password" name="ManagerPin" class="form-control" placeholder="Nhập PIN (mặc định: 1234)..." required />
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger fw-semibold">Xác nhận hủy món</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openChangeItemModal(detailId, itemName) {
+            document.getElementById('changeOrderDetailId').value = detailId;
+            document.getElementById('changeOldItemName').textContent = itemName;
+            new bootstrap.Modal(document.getElementById('changeItemModal')).show();
+        }
+
+        function openReturnItemModal(detailId, itemName, maxQty) {
+            document.getElementById('returnOrderDetailId').value = detailId;
+            document.getElementById('returnItemName').textContent = itemName;
+            document.getElementById('returnQuantity').value = maxQty;
+            document.getElementById('returnQuantity').max = maxQty;
+            new bootstrap.Modal(document.getElementById('returnItemModal')).show();
+        }
+    </script>
+}

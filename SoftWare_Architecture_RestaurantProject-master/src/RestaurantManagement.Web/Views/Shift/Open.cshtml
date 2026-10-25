@@ -1,0 +1,60 @@
+@model OpenShiftViewModel
+@{
+    ViewData["Title"] = "Mở ca làm việc (BM04)";
+}
+
+<div class="row justify-content-center py-4">
+    <div class="col-md-6 col-lg-5">
+        <div class="card card-senviet p-4 shadow-sm border-0">
+            <div class="text-center mb-4">
+                <div class="display-6 text-success mb-2"><i class="bi bi-box-arrow-in-right"></i></div>
+                <h3 class="fw-bold brand-serif mb-1">Mở Ca Thu Ngân (BM04)</h3>
+                <p class="text-muted small">Biên bản bàn giao và nhận tiền mặt đầu ca làm việc</p>
+            </div>
+
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+            {
+                <div class="alert alert-danger py-2 px-3 small rounded-3" role="alert">
+                    <div asp-validation-summary="All" class="mb-0"></div>
+                </div>
+            }
+
+            <form asp-action="Open" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="StaffId" />
+                <input type="hidden" asp-for="StaffName" />
+
+                <div class="alert alert-light border small mb-3">
+                    <i class="bi bi-person-badge me-1 text-primary"></i> Thu ngân nhận ca: <strong>@Model.StaffName</strong>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="InitialCash" class="form-label fw-semibold small">Tiền mặt ban đầu trong két (VNĐ) *</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="bi bi-cash"></i></span>
+                        <input asp-for="InitialCash" class="form-control" type="number" step="1000" min="0" required />
+                    </div>
+                    <small class="text-muted">Mức bàn giao chuẩn theo quy định nhà hàng: <strong>2.000.000 VNĐ</strong></small>
+                    <span asp-validation-for="InitialCash" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="TerminalId" class="form-label fw-semibold small">Mã quầy thu ngân / POS *</label>
+                    <select asp-for="TerminalId" class="form-select">
+                        <option value="POS-01">Quầy Thu Ngân 01 (Tầng trệt)</option>
+                        <option value="POS-02">Quầy Thu Ngân 02 (Tầng lầu)</option>
+                    </select>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-sen-primary py-2 fw-semibold">
+                        <i class="bi bi-check2-circle me-1"></i> Xác nhận mở ca & Bắt đầu bán hàng
+                    </button>
+                    <a asp-controller="Floor" asp-action="Index" class="btn btn-light border py-2">
+                        Quay lại sơ đồ bàn
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

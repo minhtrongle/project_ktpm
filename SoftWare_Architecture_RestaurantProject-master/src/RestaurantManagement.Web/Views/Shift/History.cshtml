@@ -1,0 +1,91 @@
+@model List<ShiftSessionDto>
+@{
+    ViewData["Title"] = "Lịch sử các ca làm việc";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1 brand-serif">Lịch Sử Các Ca Làm Việc</h3>
+        <p class="text-muted small mb-0">Theo dõi đối soát két tiền, doanh thu và chênh lệch từng ca</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-clock me-1"></i> Ca hiện tại
+        </a>
+        <a asp-action="Open" class="btn btn-sen-primary">
+            <i class="bi bi-plus-lg me-1"></i> Mở ca mới (BM04)
+        </a>
+    </div>
+</div>
+
+<div class="card card-senviet p-3">
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-folder-x display-5 mb-2 d-block opacity-50"></i>
+            Chưa có lịch sử ca làm việc nào được ghi nhận.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th>Mã Ca</th>
+                        <th>Thu Ngân</th>
+                        <th>Bắt Đầu</th>
+                        <th>Kết Thúc</th>
+                        <th class="text-end">Tiền Đầu Ca</th>
+                        <th class="text-end">Tiền Mặt Thu</th>
+                        <th class="text-end">Chuyển Khoản</th>
+                        <th class="text-end">Thực Đếm</th>
+                        <th class="text-end">Chênh Lệch</th>
+                        <th>Trạng Thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model)
+                    {
+                        <tr>
+                            <td><strong>@s.ShiftCode</strong></td>
+                            <td class="fw-semibold">@s.StaffName</td>
+                            <td>@s.StartTime.ToLocalTime().ToString("HH:mm dd/MM")</td>
+                            <td>@(s.EndTime?.ToLocalTime().ToString("HH:mm dd/MM") ?? "-")</td>
+                            <td class="text-end">@s.InitialCash.ToString("N0") đ</td>
+                            <td class="text-end text-success">@s.TotalCashCollected.ToString("N0") đ</td>
+                            <td class="text-end text-info">@s.TotalTransferCollected.ToString("N0") đ</td>
+                            <td class="text-end fw-bold">@(s.ActualCash?.ToString("N0") ?? "-") đ</td>
+                            <td class="text-end">
+                                @if (s.Difference.HasValue)
+                                {
+                                    if (s.Difference == 0)
+                                    {
+                                        <span class="badge bg-success">Khớp</span>
+                                    }
+                                    else if (s.Difference > 0)
+                                    {
+                                        <span class="badge bg-warning text-dark">+@s.Difference.Value.ToString("N0") đ</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">@s.Difference.Value.ToString("N0") đ</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span>-</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge @(s.Status == ShiftStatus.Active ? "bg-primary" : "bg-secondary")">
+                                    @s.Status
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

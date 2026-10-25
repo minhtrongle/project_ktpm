@@ -1,0 +1,197 @@
+@model CloseShiftViewModel
+@{
+    ViewData["Title"] = $"Kết ca làm việc: {Model.Shift.ShiftCode} (BM06)";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1 brand-serif">Biên Bản Kết Ca & Kiểm Kê Tiền Mặt (BM06)</h3>
+        <p class="text-muted small mb-0">Kiểm đếm chi tiết các mệnh giá tiền mặt trong két và đối soát với doanh thu hệ thống</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Quay lại
+    </a>
+</div>
+
+@if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+{
+    <div class="alert alert-danger py-2 px-3 small rounded-3 mb-4" role="alert">
+        <div asp-validation-summary="All" class="mb-0"></div>
+    </div>
+}
+
+<form asp-action="Close" method="post" id="closeShiftForm">
+    @Html.AntiForgeryToken()
+
+    <div class="row g-4">
+        <!-- Left: Cash Denominations Counting Table -->
+        <div class="col-lg-7">
+            <div class="card card-senviet p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-cash-stack me-2 text-success"></i>Bảng Kiểm Đếm Mệnh Giá Tiền Mặt</h5>
+                    <span class="badge bg-light text-dark border">9 Mệnh Giá VNĐ</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Mệnh Giá (VNĐ)</th>
+                                <th style="width: 140px;">Số Lượng (Tờ)</th>
+                                <th class="text-end">Thành Tiền (VNĐ)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < Model.Denominations.Count; i++)
+                            {
+                                <tr>
+                                    <td>
+                                        <input type="hidden" name="Denominations[@i].Denomination" value="@Model.Denominations[i].Denomination" />
+                                        <span class="fw-bold text-dark">@Model.Denominations[i].Denomination.ToString("N0") VNĐ</span>
+                                    </td>
+                                    <td>
+                                        <input type="number" 
+                                               name="Denominations[@i].Quantity" 
+                                               id="qty_@Model.Denominations[i].Denomination" 
+                                               value="@Model.Denominations[i].Quantity" 
+                                               min="0" 
+                                               class="form-control form-control-sm text-center denomination-input" 
+                                               data-denom="@Model.Denominations[i].Denomination" 
+                                               oninput="calculateTotal()" />
+                                    </td>
+                                    <td class="text-end fw-semibold" id="total_@Model.Denominations[i].Denomination">
+                                        0 đ
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="2" class="fs-6">TỔNG TIỀN MẶT THỰC ĐẾM:</th>
+                                <th class="text-end fs-5 text-success" id="displayTotalCounted">0 VNĐ</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Reconciliation & Discrepancy Approval -->
+        <div class="col-lg-5">
+            <div class="card card-senviet p-4 mb-4">
+                <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-arrow-left-right me-2 text-primary"></i>Đối Soát Hệ Thống</h5>
+
+                <div class="p-3 bg-light rounded-3 mb-3">
+                    <div class="d-flex justify-content-between mb-2 small">
+                        <span class="text-muted">Mã ca:</span>
+                        <strong>@Model.Shift.ShiftCode</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2 small">
+                        <span class="text-muted">Thu ngân kết ca:</span>
+                        <strong>@Model.Shift.StaffName</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2 small">
+                        <span class="text-muted">Tiền mặt đầu ca (BM04):</span>
+                        <span>@Model.Shift.InitialCash.ToString("N0") đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2 small">
+                        <span class="text-muted">Doanh thu tiền mặt bán được:</span>
+                        <span class="text-success">+@Model.Shift.TotalCashCollected.ToString("N0") đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2 small">
+                        <span class="text-muted">Doanh thu chuyển khoản VietQR:</span>
+                        <span class="text-info">@Model.Shift.TotalTransferCollected.ToString("N0") đ</span>
+                    </div>
+                    <hr />
+                    <div class="d-flex justify-content-between fw-bold">
+                        <span>Tiền mặt lý thuyết phải có:</span>
+                        <span class="text-primary fs-5" id="theoreticalCash" data-value="@Model.ExpectedCash">
+                            @Model.ExpectedCash.ToString("N0") VNĐ
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Difference Alert Box -->
+                <div id="diffAlertBox" class="alert alert-secondary py-2 px-3 small rounded-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold">Chênh lệch két tiền:</span>
+                        <strong class="fs-6" id="diffValueDisplay">0 VNĐ</strong>
+                    </div>
+                    <small id="diffTextStatus" class="d-block mt-1 text-muted">Két tiền khớp hoàn toàn với số liệu hệ thống.</small>
+                </div>
+
+                <!-- Discrepancy & Manager PIN (required when diff != 0) -->
+                <div id="discrepancyFields" class="p-3 border rounded-3 bg-white mb-3" style="display: none;">
+                    <div class="alert alert-warning py-1 px-2 small mb-2">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> Có chênh lệch tiền mặt! Bắt buộc nhập giải trình và Quản lý nhập mã PIN xác nhận.
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="DiscrepancyReason" class="form-label small fw-semibold">Giải trình lý do chênh lệch *</label>
+                        <textarea asp-for="DiscrepancyReason" id="discrepancyReasonInput" class="form-control form-control-sm" rows="2" placeholder="Ví dụ: Khách thừa 2k không lấy / Tiền thối nhầm..."></textarea>
+                    </div>
+
+                    <div class="mb-2">
+                        <label asp-for="ManagerPin" class="form-label small fw-semibold">Mã PIN Quản lý phê duyệt *</label>
+                        <input asp-for="ManagerPin" id="managerPinInput" type="password" class="form-control form-control-sm" placeholder="Nhập PIN Quản lý (1234)..." />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-sen-primary w-100 py-2 fw-semibold">
+                    <i class="bi bi-check2-circle me-1"></i> Xác Nhận Chốt Ca & Đóng Két
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        function calculateTotal() {
+            let totalCounted = 0;
+            const inputs = document.querySelectorAll('.denomination-input');
+
+            inputs.forEach(input => {
+                const denom = parseInt(input.getAttribute('data-denom'), 10);
+                const qty = parseInt(input.value, 10) || 0;
+                const rowTotal = denom * qty;
+                totalCounted += rowTotal;
+
+                const rowTotalEl = document.getElementById('total_' + denom);
+                if (rowTotalEl) {
+                    rowTotalEl.textContent = rowTotal.toLocaleString('vi-VN') + ' đ';
+                }
+            });
+
+            document.getElementById('displayTotalCounted').textContent = totalCounted.toLocaleString('vi-VN') + ' VNĐ';
+
+            const theoreticalEl = document.getElementById('theoreticalCash');
+            const theoretical = parseFloat(theoreticalEl.getAttribute('data-value')) || 0;
+            const diff = totalCounted - theoretical;
+
+            const diffDisplay = document.getElementById('diffValueDisplay');
+            const diffAlertBox = document.getElementById('diffAlertBox');
+            const diffText = document.getElementById('diffTextStatus');
+            const discrepancyFields = document.getElementById('discrepancyFields');
+
+            diffDisplay.textContent = (diff > 0 ? '+' : '') + diff.toLocaleString('vi-VN') + ' VNĐ';
+
+            if (diff === 0) {
+                diffAlertBox.className = 'alert alert-success py-2 px-3 small rounded-3 mb-3';
+                diffText.textContent = 'Khớp hoàn toàn với số liệu ghi nhận hệ thống!';
+                discrepancyFields.style.display = 'none';
+            } else if (diff > 0) {
+                diffAlertBox.className = 'alert alert-warning py-2 px-3 small rounded-3 mb-3';
+                diffText.textContent = 'Thừa tiền trong két so với hệ thống (+ ' + diff.toLocaleString('vi-VN') + 'đ).';
+                discrepancyFields.style.display = 'block';
+            } else {
+                diffAlertBox.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+                diffText.textContent = 'Thiếu tiền trong két so với hệ thống (' + diff.toLocaleString('vi-VN') + 'đ).';
+                discrepancyFields.style.display = 'block';
+            }
+        }
+
+        // Initialize on page load
+        calculateTotal();
+    </script>
+}

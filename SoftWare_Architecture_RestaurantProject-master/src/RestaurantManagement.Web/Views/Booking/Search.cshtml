@@ -1,0 +1,100 @@
+@model SearchAvailableTablesViewModel
+@{
+    ViewData["Title"] = "Tra cứu bàn trống trực tuyến (BM12)";
+}
+
+<div class="row justify-content-center py-3">
+    <div class="col-lg-10">
+        <div class="text-center mb-4">
+            <span class="badge bg-danger px-3 py-1 rounded-pill mb-2 fw-semibold">Biểu mẫu BM12</span>
+            <h2 class="fw-bold brand-serif text-dark">Tra Cứu Bàn Trống Trực Tuyến</h2>
+            <p class="text-muted small" style="max-width: 600px; margin: 0 auto;">
+                Chọn thời gian và số lượng khách để kiểm tra các vị trí bàn còn trống phù hợp nhất tại 4 phân khu của Nhà hàng Sen Việt.
+            </p>
+        </div>
+
+        <!-- Search Form Card -->
+        <div class="card card-senviet p-4 shadow-sm mb-4">
+            <form asp-action="Search" method="post">
+                @Html.AntiForgeryToken()
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label asp-for="BookingDate" class="form-label small fw-semibold">Ngày dùng bữa *</label>
+                        <input asp-for="BookingDate" class="form-control" type="date" min="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label asp-for="BookingTime" class="form-label small fw-semibold">Giờ dùng bữa *</label>
+                        <input asp-for="BookingTime" class="form-control" type="time" required />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label asp-for="GuestCount" class="form-label small fw-semibold">Số lượng khách *</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-people"></i></span>
+                            <input asp-for="GuestCount" class="form-control" type="number" min="1" max="50" required />
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-sen-primary w-100 py-2 fw-semibold shadow-sm">
+                            <i class="bi bi-search me-1"></i> Tìm bàn khả dụng
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Section -->
+        @if (Model.HasSearched)
+        {
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-dark">
+                        Kết quả tra cứu: <span class="text-success">@Model.AvailableTables.Count bàn trống phù hợp</span>
+                    </h5>
+                    <small class="text-muted">Ngày: <strong>@Model.BookingDate.ToString("dd/MM/yyyy")</strong> lúc <strong>@Model.BookingTime.ToString("HH:mm")</strong> cho <strong>@Model.GuestCount khách</strong></small>
+                </div>
+
+                @if (!Model.AvailableTables.Any())
+                {
+                    <div class="card card-senviet p-5 text-center">
+                        <div class="display-4 text-muted mb-3"><i class="bi bi-calendar-x"></i></div>
+                        <h5 class="fw-bold text-dark">Rất tiếc, khung giờ này đã kín bàn phù hợp!</h5>
+                        <p class="text-muted small mb-3">Quý khách vui lòng chọn khung giờ khác hoặc liên hệ hotline 1900 6868 để được hỗ trợ sắp xếp bàn.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+                        @foreach (var table in Model.AvailableTables)
+                        {
+                            <div class="col">
+                                <div class="card card-senviet p-3 h-100 border-start border-success border-4">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <span class="fs-4 fw-bold text-dark">Bàn @table.TableNumber</span>
+                                        <span class="badge bg-success-subtle text-success">Còn trống</span>
+                                    </div>
+
+                                    <div class="small text-muted mb-3">
+                                        <div><i class="bi bi-geo-alt me-1 text-danger"></i>Khu vực: <strong>@table.AreaName</strong></div>
+                                        <div><i class="bi bi-person-check me-1 text-primary"></i>Sức chứa tối đa: <strong>@table.Capacity người</strong></div>
+                                    </div>
+
+                                    <a asp-action="Create" 
+                                       asp-route-tableId="@table.TableId" 
+                                       asp-route-date="@Model.BookingDate.ToString("yyyy-MM-dd")" 
+                                       asp-route-time="@Model.BookingTime.ToString("HH:mm")" 
+                                       asp-route-guests="@Model.GuestCount" 
+                                       class="btn btn-sen-primary w-100 fw-semibold mt-auto">
+                                        <i class="bi bi-pencil-square me-1"></i> Đặt bàn này (BM13) &rarr;
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

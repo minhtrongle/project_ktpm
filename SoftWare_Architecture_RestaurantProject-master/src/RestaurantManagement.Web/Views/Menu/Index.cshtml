@@ -1,0 +1,139 @@
+@model MenuManagementViewModel
+@{
+    ViewData["Title"] = "Quản lý thực đơn (BM07)";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1 brand-serif">Quản Lý Thực Đơn (BM07)</h3>
+        <p class="text-muted small mb-0">Danh mục món ăn, thức uống, định giá bán và quản lý trạm chế biến</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Create" class="btn btn-sen-primary fw-semibold">
+            <i class="bi bi-plus-lg me-1"></i> Thêm món mới (BM07)
+        </a>
+    </div>
+</div>
+
+<!-- Category Filters -->
+<div class="card card-senviet p-3 mb-4">
+    <div class="d-flex flex-wrap gap-1">
+        <a asp-action="Index" class="btn btn-sm @(Model.SelectedCategoryId == null ? "btn-danger" : "btn-light border")">
+            Tất cả danh mục (@Model.Items.Count)
+        </a>
+        @foreach (var cat in Model.Categories)
+        {
+            <a asp-action="Index" asp-route-categoryId="@cat.Id" class="btn btn-sm @(Model.SelectedCategoryId == cat.Id ? "btn-danger" : "btn-light border")">
+                @cat.CategoryName (@cat.ItemCount)
+            </a>
+        }
+    </div>
+</div>
+
+<!-- Menu Items Table -->
+<div class="card card-senviet p-3">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small">
+                <tr>
+                    <th>Mã Món</th>
+                    <th>Tên Món Ăn / Đồ Uống</th>
+                    <th>Danh Mục</th>
+                    <th>Đơn Vị</th>
+                    <th>Trạm Bếp</th>
+                    <th class="text-end">Đơn Giá</th>
+                    <th class="text-center">Kinh Doanh</th>
+                    <th class="text-end">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td><strong>@item.ItemCode</strong></td>
+                        <td>
+                            <div class="fw-semibold text-dark">@item.ItemName</div>
+                            <small class="text-muted">@(item.Description ?? "-")</small>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">@item.CategoryName</span></td>
+                        <td>@(item.Unit ?? "Phần")</td>
+                        <td>
+                            <span class="badge bg-secondary-subtle text-secondary">@item.KitchenStation</span>
+                        </td>
+                        <td class="text-end fw-bold text-danger">@item.Price.ToString("N0") VNĐ</td>
+                        <td class="text-center">
+                            <form asp-action="ToggleAvailability" asp-route-id="@item.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm @(item.IsAvailable ? "btn-outline-success" : "btn-outline-secondary") border-0" title="Bấm để đổi trạng thái">
+                                    <i class="bi @(item.IsAvailable ? "bi-toggle-on fs-5" : "bi-toggle-off fs-5")"></i>
+                                    <span class="small d-block">@(item.IsAvailable ? "Đang bán" : "Hết món")</span>
+                                </button>
+                            </form>
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-warning text-dark" onclick="openUpdatePriceModal(@item.Id, '@item.ItemName', @item.Price)" title="Đổi giá (Quản lý PIN)">
+                                    <i class="bi bi-tag"></i> Đổi giá
+                                </button>
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary" title="Sửa thông tin món">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Đổi Giá (Manager PIN Required) -->
+<div class="modal fade" id="updatePriceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content card-senviet">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Điều Chỉnh Đơn Giá Món (PIN Quản lý)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="UpdatePrice" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="priceMenuItemId" name="MenuItemId" />
+                <input type="hidden" id="priceItemName" name="ItemName" />
+
+                <div class="modal-body">
+                    <div class="alert alert-light border small mb-3">
+                        Món điều chỉnh: <strong id="priceDisplayItemName" class="text-danger"></strong>
+                        &bull; Giá hiện tại: <strong id="priceDisplayCurrent" class="text-muted"></strong>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Đơn giá mới (VNĐ) *</label>
+                        <input type="number" id="priceNewPrice" name="NewPrice" step="1000" min="1000" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Mã PIN Quản lý (xác thực) *</label>
+                        <input type="password" name="ManagerPin" class="form-control" placeholder="Nhập PIN (1234)..." required />
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-sen-primary fw-semibold">Lưu thay đổi giá</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openUpdatePriceModal(id, name, price) {
+            document.getElementById('priceMenuItemId').value = id;
+            document.getElementById('priceItemName').value = name;
+            document.getElementById('priceDisplayItemName').textContent = name;
+            document.getElementById('priceDisplayCurrent').textContent = price.toLocaleString('vi-VN') + ' VNĐ';
+            document.getElementById('priceNewPrice').value = price;
+            new bootstrap.Modal(document.getElementById('updatePriceModal')).show();
+        }
+    </script>
+}

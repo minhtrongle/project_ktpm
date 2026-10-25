@@ -1,0 +1,219 @@
+@{
+    ViewData["Title"] = "Trang chủ - Ẩm thực Truyền thống Sen Việt";
+    var featuredItems = ViewBag.FeaturedItems as List<MenuItemDto> ?? new List<MenuItemDto>();
+}
+
+<!-- Hero Section -->
+<div class="card card-senviet border-0 overflow-hidden mb-5 text-white position-relative" style="background: linear-gradient(135deg, rgba(139, 30, 47, 0.95) 0%, rgba(30, 41, 59, 0.92) 100%);">
+    <div class="row align-items-center g-0 p-4 p-lg-5">
+        <div class="col-lg-7 py-3">
+            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-semibold mb-3">
+                <i class="bi bi-star-fill text-dark me-1"></i> Không gian ẩm thực thuần Việt cao cấp
+            </span>
+            <h1 class="display-4 fw-bold text-white brand-serif mb-3">
+                Nhà Hàng Sen Việt
+            </h1>
+            <p class="lead text-light opacity-90 mb-4" style="max-width: 580px;">
+                Hòa quyện tinh hoa ẩm thực ba miền trong không gian thanh tịnh và sang trọng. 
+                Hệ thống 40 bàn tại 4 phân khu sẵn sàng phục vụ các bữa tiệc ấm cúng của gia đình và đối tác.
+            </p>
+            <div class="d-flex flex-wrap gap-3">
+                <a asp-controller="Booking" asp-action="Search" class="btn btn-sen-gold btn-lg px-4 shadow">
+                    <i class="bi bi-calendar-check me-2"></i> Đặt bàn trực tuyến
+                </a>
+                <a asp-controller="Booking" asp-action="Lookup" class="btn btn-outline-light btn-lg px-4">
+                    <i class="bi bi-search me-2"></i> Tra cứu đặt bàn
+                </a>
+                <a asp-controller="Account" asp-action="Login" class="btn btn-link text-light text-decoration-none d-flex align-items-center">
+                    <i class="bi bi-person-lock me-1"></i> Cổng nhân viên &rarr;
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-5 text-center d-none d-lg-block">
+            <div class="p-4 bg-white bg-opacity-10 rounded-4 border border-white border-opacity-25 backdrop-blur">
+                <div class="display-1 text-warning mb-2"><i class="bi bi-flower1"></i></div>
+                <h4 class="text-white brand-serif mb-2">Trải nghiệm dịch vụ 5 sao</h4>
+                <p class="text-light small mb-3">Tự động hóa toàn diện từ đặt chỗ, gọi món tại bàn, gửi bếp KDS đến thanh toán VietQR.</p>
+                <div class="row text-center g-2 pt-2 border-top border-white border-opacity-25">
+                    <div class="col-3">
+                        <div class="h5 mb-0 fw-bold text-warning">40</div>
+                        <small class="text-white-50" style="font-size: 0.7rem;">Bàn ăn</small>
+                    </div>
+                    <div class="col-3">
+                        <div class="h5 mb-0 fw-bold text-warning">4</div>
+                        <small class="text-white-50" style="font-size: 0.7rem;">Phân khu</small>
+                    </div>
+                    <div class="col-3">
+                        <div class="h5 mb-0 fw-bold text-warning">15'</div>
+                        <small class="text-white-50" style="font-size: 0.7rem;">Giữ bàn</small>
+                    </div>
+                    <div class="col-3">
+                        <div class="h5 mb-0 fw-bold text-warning">VietQR</div>
+                        <small class="text-white-50" style="font-size: 0.7rem;">Thanh toán</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3 Quick Access Cards -->
+<div class="row g-4 mb-5">
+    <div class="col-md-4">
+        <div class="card card-senviet h-100 p-4 border-start border-danger border-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="bg-danger bg-opacity-10 text-danger p-3 rounded-circle fs-4">
+                    <i class="bi bi-calendar-event"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0">Đặt Bàn Trực Tuyến</h5>
+                    <small class="text-muted">Biểu mẫu BM12 - BM14</small>
+                </div>
+            </div>
+            <p class="text-muted small mb-4">
+                Tra cứu bàn trống theo ngày giờ, số lượng khách, chọn bàn ưng ý và thanh toán cọc trực tuyến qua VietQR tiện lợi.
+            </p>
+            <a asp-controller="Booking" asp-action="Search" class="btn btn-outline-danger w-100 mt-auto fw-semibold">
+                Tra cứu bàn trống &rarr;
+            </a>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-senviet h-100 p-4 border-start border-primary border-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle fs-4">
+                    <i class="bi bi-search"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0">Tra Cứu & Hủy Đặt Bàn</h5>
+                    <small class="text-muted">Biểu mẫu BM15</small>
+                </div>
+            </div>
+            <p class="text-muted small mb-4">
+                Kiểm tra trạng thái đặt chỗ bằng mã booking hoặc số điện thoại. Hỗ trợ hủy bàn kèm chính sách hoàn cọc minh bạch.
+            </p>
+            <a asp-controller="Booking" asp-action="Lookup" class="btn btn-outline-primary w-100 mt-auto fw-semibold">
+                Tra cứu ngay &rarr;
+            </a>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-senviet h-100 p-4 border-start border-success border-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle fs-4">
+                    <i class="bi bi-person-badge"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0">Cổng Vận Hành Nội Bộ</h5>
+                    <small class="text-muted">Phục vụ &bull; Thu ngân &bull; Bếp &bull; Quản lý</small>
+                </div>
+            </div>
+            <p class="text-muted small mb-4">
+                Truy cập sơ đồ 40 bàn (BM03), gọi món gửi bếp KDS (BM01), bàn giao và kết ca thu ngân (BM04/06), hóa đơn VAT (BM05).
+            </p>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a asp-controller="Floor" asp-action="Index" class="btn btn-success w-100 mt-auto fw-semibold">
+                    Vào trang vận hành &rarr;
+                </a>
+            }
+            else
+            {
+                <a asp-controller="Account" asp-action="Login" class="btn btn-outline-success w-100 mt-auto fw-semibold">
+                    Đăng nhập nhân sự &rarr;
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Phân khu nhà hàng -->
+<div class="mb-5">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <span class="text-danger fw-bold text-uppercase small" style="letter-spacing: 1px;">Không gian bài trí</span>
+            <h3 class="fw-bold mb-0 brand-serif">4 Phân Khu Ẩm Thực Đặc Sắc</h3>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-3 col-sm-6">
+            <div class="card card-senviet p-3 h-100 border-0 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-danger-subtle text-danger fw-bold">15 Bàn</span>
+                    <i class="bi bi-door-open fs-4 text-danger"></i>
+                </div>
+                <h5 class="fw-bold mb-1">Tầng Trệt</h5>
+                <p class="text-muted small mb-0">Không gian ấm cúng, gần quầy thu ngân và tiện di chuyển cho gia đình, người cao tuổi.</p>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card card-senviet p-3 h-100 border-0 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-success-subtle text-success fw-bold">10 Bàn</span>
+                    <i class="bi bi-tree fs-4 text-success"></i>
+                </div>
+                <h5 class="fw-bold mb-1">Sân Vườn</h5>
+                <p class="text-muted small mb-0">Không gian mở ngoài trời thoáng đãng, hồ sen thơm ngát, thích hợp cho tiệc bạn bè.</p>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card card-senviet p-3 h-100 border-0 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-primary-subtle text-primary fw-bold">10 Bàn</span>
+                    <i class="bi bi-buildings fs-4 text-primary"></i>
+                </div>
+                <h5 class="fw-bold mb-1">Tầng Lầu</h5>
+                <p class="text-muted small mb-0">Tầm nhìn ngắm phố lãng mạn, bài trí hiện đại trang nhã cho các buổi hẹn hò, tiệc cặp đôi.</p>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card card-senviet p-3 h-100 border-0 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-warning-subtle text-warning-emphasis fw-bold">5 Bàn</span>
+                    <i class="bi bi-gem fs-4 text-warning"></i>
+                </div>
+                <h5 class="fw-bold mb-1">Phòng VIP</h5>
+                <p class="text-muted small mb-0">Phòng khép kín cách âm, phục vụ riêng biệt chuyên nghiệp cho gặp gỡ đối tác và tiệc VIP.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Featured Menu Items -->
+@if (featuredItems.Any())
+{
+    <div class="mb-5">
+        <div class="d-flex justify-content-between align-items-end mb-4">
+            <div>
+                <span class="text-danger fw-bold text-uppercase small" style="letter-spacing: 1px;">Thực đơn tiêu biểu</span>
+                <h3 class="fw-bold mb-0 brand-serif">Món Ngon Nổi Bật</h3>
+            </div>
+            <a asp-controller="Booking" asp-action="Search" class="btn btn-sm btn-outline-danger">
+                Đặt bàn thưởng thức &rarr;
+            </a>
+        </div>
+
+        <div class="row g-4">
+            @foreach (var dish in featuredItems)
+            {
+                <div class="col-md-4 col-sm-6">
+                    <div class="card card-senviet h-100 p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-light text-secondary border">@dish.CategoryName</span>
+                            <span class="fw-bold text-danger">@dish.Price.ToString("N0") VNĐ</span>
+                        </div>
+                        <h5 class="fw-bold mb-1 text-dark">@dish.ItemName</h5>
+                        <p class="text-muted small mb-3 flex-grow-1">@(dish.Description ?? "Món ăn truyền thống chế biến từ nguyên liệu tươi ngon chọn lọc hàng ngày.")</p>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top text-muted small">
+                            <span><i class="bi bi-box me-1"></i>@dish.Unit</span>
+                            <span>Mã: <strong>@dish.ItemCode</strong></span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}

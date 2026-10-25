@@ -1,0 +1,111 @@
+@model PreBillViewModel
+@{
+    ViewData["Title"] = $"Phiếu tạm tính - Bàn {Model.PreBill.TableNumber} (BM02)";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <div>
+        <h3 class="fw-bold mb-1 brand-serif">Phiếu Tạm Tính Tiền (BM02)</h3>
+        <p class="text-muted small mb-0">Xem trước hóa đơn để khách kiểm tra món trước khi thanh toán</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Table" asp-route-tableId="@Model.PreBill.Items.FirstOrDefault()?.Id" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại gọi món
+        </a>
+        <button type="button" class="btn btn-sen-primary" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i> In phiếu tạm tính
+        </button>
+        <a asp-controller="Invoice" asp-action="Checkout" asp-route-orderId="@Model.PreBill.Items.FirstOrDefault()?.Id" class="btn btn-success fw-semibold">
+            <i class="bi bi-cash-stack me-1"></i> Sang quầy thanh toán (BM05) &rarr;
+        </a>
+    </div>
+</div>
+
+<div class="receipt-paper">
+    <div class="receipt-header">
+        <div class="fw-bold fs-4 text-uppercase">NHÀ HÀNG SEN VIỆT</div>
+        <div class="small">123 Đường Sen Vàng, P. Bến Nghé, Quận 1, TP. HCM</div>
+        <div class="small">Hotline: 1900 6868</div>
+        <div class="fs-5 fw-bold mt-2 text-uppercase">PHIẾU TẠM TÍNH (PRE-BILL)</div>
+        <div class="small fst-italic">(Chưa có giá trị thay thế hóa đơn VAT chính thức)</div>
+    </div>
+
+    <div class="small mb-3">
+        <div class="d-flex justify-content-between">
+            <span>Mã Order: <strong>@Model.PreBill.OrderCode</strong></span>
+            <span>Bàn: <strong>@Model.PreBill.TableNumber (@Model.PreBill.AreaName)</strong></span>
+        </div>
+        <div class="d-flex justify-content-between">
+            <span>Giờ vào: @Model.PreBill.OrderTime.ToString("HH:mm dd/MM/yyyy")</span>
+            <span>Số khách: @Model.PreBill.GuestCount người</span>
+        </div>
+    </div>
+
+    <table class="table table-sm border-top border-bottom small mb-3">
+        <thead>
+            <tr>
+                <th>Món</th>
+                <th class="text-center">SL</th>
+                <th class="text-end">Đ.Giá</th>
+                <th class="text-end">T.Tiền</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.PreBill.Items)
+            {
+                <tr>
+                    <td>@item.ItemName</td>
+                    <td class="text-center">@item.Quantity</td>
+                    <td class="text-end">@item.UnitPrice.ToString("N0")</td>
+                    <td class="text-end">@item.SubTotal.ToString("N0")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="small">
+        <div class="d-flex justify-content-between py-1">
+            <span>Tổng tiền món:</span>
+            <span>@Model.PreBill.ItemsTotal.ToString("N0") đ</span>
+        </div>
+
+        @if (Model.PreBill.SurchargeAmount > 0)
+        {
+            <div class="d-flex justify-content-between py-1 text-danger">
+                <span>Phụ thu cao điểm (T7/CN 18h-21h):</span>
+                <span>+@Model.PreBill.SurchargeAmount.ToString("N0") đ</span>
+            </div>
+        }
+
+        <div class="d-flex justify-content-between py-1">
+            <span>Thuế VAT (8%):</span>
+            <span>+@Model.PreBill.VatAmount.ToString("N0") đ</span>
+        </div>
+
+        @if (Model.PreBill.DiscountAmount > 0)
+        {
+            <div class="d-flex justify-content-between py-1 text-success">
+                <span>Giảm giá thẻ thành viên:</span>
+                <span>-@Model.PreBill.DiscountAmount.ToString("N0") đ</span>
+            </div>
+        }
+
+        @if (Model.PreBill.DepositDeducted > 0)
+        {
+            <div class="d-flex justify-content-between py-1 text-primary fw-bold">
+                <span>Đã trừ tiền cọc đặt bàn:</span>
+                <span>-@Model.PreBill.DepositDeducted.ToString("N0") đ</span>
+            </div>
+        }
+
+        <div class="d-flex justify-content-between pt-2 border-top border-2 border-dark fs-5 fw-bold">
+            <span>TỔNG CẦN THANH TOÁN:</span>
+            <span class="text-danger">@Model.PreBill.FinalAmount.ToString("N0") đ</span>
+        </div>
+    </div>
+
+    <div class="receipt-footer small">
+        <div>Xin quý khách vui lòng kiểm tra lại món ăn và số lượng!</div>
+        <div class="fst-italic mt-1">Cảm ơn Quý khách & Hẹn gặp lại!</div>
+    </div>
+</div>

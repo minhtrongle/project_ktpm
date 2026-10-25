@@ -1,0 +1,86 @@
+@model ShiftSessionDto
+@{
+    ViewData["Title"] = $"Ca làm việc: {Model.ShiftCode} (BM04/06)";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1 brand-serif">Quản Lý Ca Làm Việc</h3>
+        <p class="text-muted small mb-0">Theo dõi dòng tiền thu ngân, đối soát két và kết ca</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="History" class="btn btn-outline-secondary">
+            <i class="bi bi-clock-history me-1"></i> Lịch sử các ca
+        </a>
+        <a asp-action="Close" class="btn btn-warning fw-semibold text-dark shadow-sm">
+            <i class="bi bi-check2-circle me-1"></i> Kết ca & Kiểm đếm tiền mặt (BM06)
+        </a>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card card-senviet p-3 border-start border-primary border-4">
+            <small class="text-muted fw-semibold">Mã Ca Thu Ngân</small>
+            <div class="h4 fw-bold text-primary mb-1">@Model.ShiftCode</div>
+            <span class="badge bg-success-subtle text-success">Đang Hoạt Động</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-senviet p-3 border-start border-info border-4">
+            <small class="text-muted fw-semibold">Tiền Mặt Đầu Ca (BM04)</small>
+            <div class="h4 fw-bold text-info mb-1">@Model.InitialCash.ToString("N0") VNĐ</div>
+            <small class="text-muted">Quầy: @Model.CounterCode</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-senviet p-3 border-start border-success border-4">
+            <small class="text-muted fw-semibold">Tiền Mặt Thu Trong Ca</small>
+            <div class="h4 fw-bold text-success mb-1">@Model.TotalCashCollected.ToString("N0") VNĐ</div>
+            <small class="text-muted">Đã thanh toán bằng tiền mặt</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-senviet p-3 border-start border-warning border-4">
+            <small class="text-muted fw-semibold">Chuyển Khoản VietQR</small>
+            <div class="h4 fw-bold text-warning-emphasis mb-1">@Model.TotalTransferCollected.ToString("N0") VNĐ</div>
+            <small class="text-muted">Qua ngân hàng / VietQR</small>
+        </div>
+    </div>
+</div>
+
+<div class="card card-senviet p-4">
+    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-info-circle me-2 text-danger"></i>Chi Tiết Ca Làm Việc Hiện Tại</h5>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Thu ngân trực ca:</span>
+                    <strong class="text-dark">@Model.StaffName</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Thời điểm mở ca:</span>
+                    <strong>@Model.StartTime.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Tổng số hóa đơn đã thanh toán:</span>
+                    <strong class="text-primary">@Model.TotalInvoicesCount hóa đơn</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Tổng tiền mặt kỳ vọng trong két:</span>
+                    <strong class="text-success fs-5">@Model.TheoreticalCash.ToString("N0") VNĐ</strong>
+                </div>
+                <small class="text-muted d-block mb-3">(= Tiền đầu ca @Model.InitialCash.ToString("N0")đ + Tiền mặt thu được @Model.TotalCashCollected.ToString("N0")đ)</small>
+                
+                <a asp-action="Close" class="btn btn-sen-primary w-100 fw-semibold">
+                    <i class="bi bi-calculator me-1"></i> Bắt đầu kiểm đếm kết ca (BM06)
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

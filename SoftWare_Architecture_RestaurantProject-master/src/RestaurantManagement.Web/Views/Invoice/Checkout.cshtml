@@ -1,0 +1,184 @@
+@model CheckoutViewModel
+@{
+    ViewData["Title"] = $"Thanh toán - Bàn {Model.Invoice?.TableNumber} (BM05)";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1 brand-serif">Thanh Toán & Lập Hóa Đơn (BM05)</h3>
+        <p class="text-muted small mb-0">Thu ngân kiểm tra giảm giá thành viên, phụ thu cao điểm và thu tiền</p>
+    </div>
+    <a asp-controller="Order" asp-action="Table" asp-route-tableId="@Model.OrderId" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Quay lại order bàn
+    </a>
+</div>
+
+<div class="row g-4">
+    <!-- Left: Order Details & Pricing Breakdown -->
+    <div class="col-lg-7">
+        <div class="card card-senviet p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div>
+                    <h5 class="fw-bold mb-0 text-dark">Bàn @Model.Invoice.TableNumber - @Model.Invoice.AreaName</h5>
+                    <small class="text-muted">Mã Order: <strong>@Model.Invoice.OrderCode</strong></small>
+                </div>
+                <span class="badge bg-danger fs-6">BM05</span>
+            </div>
+
+            <!-- Customer Phone Lookup for Membership -->
+            <form asp-action="Checkout" method="get" class="mb-4">
+                <input type="hidden" name="orderId" value="@Model.OrderId" />
+                <label class="form-label small fw-semibold">Số điện thoại khách hàng (Tra cứu Thẻ Thành Viên)</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="bi bi-telephone"></i></span>
+                    <input type="text" name="customerPhone" value="@Model.CustomerPhone" class="form-control" placeholder="Nhập SĐT để áp dụng giảm giá 5%, 10%, 15%..." />
+                    <button type="submit" class="btn btn-outline-primary fw-semibold">
+                        <i class="bi bi-search me-1"></i> Tra cứu & Áp dụng
+                    </button>
+                </div>
+                @if (Model.Invoice.MembershipRank != MembershipRank.Standard)
+                {
+                    <div class="mt-2 small text-success fw-semibold">
+                        <i class="bi bi-patch-check-fill me-1"></i> Khách hàng: <strong>@(Model.Invoice.CustomerName ?? "Thành viên")</strong> &bull; Hạng thẻ: <strong>@Model.Invoice.MembershipRank</strong>
+                    </div>
+                }
+            </form>
+
+            <!-- Financial Calculation Table -->
+            <div class="p-3 bg-light rounded-3">
+                <div class="d-flex justify-content-between py-1 small">
+                    <span class="text-muted">Tổng tiền món ăn & thức uống:</span>
+                    <span class="fw-semibold">@Model.Invoice.ItemsTotal.ToString("N0") VNĐ</span>
+                </div>
+
+                @if (Model.Invoice.SurchargeAmount > 0)
+                {
+                    <div class="d-flex justify-content-between py-1 small text-danger">
+                        <span>Phụ thu cao điểm (Thứ 7 / CN 18:00 - 21:00):</span>
+                        <span class="fw-semibold">+@Model.Invoice.SurchargeAmount.ToString("N0") VNĐ</span>
+                    </div>
+                }
+
+                <div class="d-flex justify-content-between py-1 small">
+                    <span class="text-muted">Thuế Giá Trị Gia Tăng (VAT 8%):</span>
+                    <span class="fw-semibold">+@Model.Invoice.VatAmount.ToString("N0") VNĐ</span>
+                </div>
+
+                @if (Model.Invoice.MemberDiscountAmount > 0)
+                {
+                    <div class="d-flex justify-content-between py-1 small text-success">
+                        <span>Giảm giá thẻ thành viên (@Model.Invoice.MembershipRank):</span>
+                        <span class="fw-semibold">-@Model.Invoice.MemberDiscountAmount.ToString("N0") VNĐ</span>
+                    </div>
+                }
+
+                @if (Model.Invoice.DepositDeducted > 0)
+                {
+                    <div class="d-flex justify-content-between py-1 small text-primary fw-bold">
+                        <span>Đã khấu trừ tiền cọc đặt bàn:</span>
+                        <span class="fw-bold">-@Model.Invoice.DepositDeducted.ToString("N0") VNĐ</span>
+                    </div>
+                }
+
+                <hr />
+                <div class="d-flex justify-content-between align-items-center pt-1">
+                    <span class="fs-5 fw-bold text-dark">TỔNG TIỀN PHẢI THU:</span>
+                    <span class="fs-4 fw-bold text-danger" id="finalAmountDisplay" data-value="@Model.Invoice.FinalAmount">
+                        @Model.Invoice.FinalAmount.ToString("N0") VNĐ
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Payment Method & Execution -->
+    <div class="col-lg-5">
+        <div class="card card-senviet p-4">
+            <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-wallet2 me-2 text-success"></i>Phương Thức Thanh Toán</h5>
+
+            <form asp-action="ProcessPayment" method="post" id="paymentForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="OrderId" />
+                <input type="hidden" asp-for="CustomerPhone" />
+                <input type="hidden" asp-for="FinalAmount" />
+
+                <!-- Payment Method Radios -->
+                <div class="mb-4">
+                    <div class="form-check p-3 border rounded-3 mb-2 bg-light d-flex align-items-center gap-2">
+                        <input class="form-check-input ms-0 me-2" type="radio" asp-for="PaymentMethod" value="@PaymentMethod.Cash" id="pmCash" checked onchange="togglePaymentMethod('Cash')" />
+                        <label class="form-check-label fw-semibold" for="pmCash">
+                            <i class="bi bi-cash me-1 text-success fs-5"></i> Tiền mặt (Cash)
+                        </label>
+                    </div>
+
+                    <div class="form-check p-3 border rounded-3 mb-2 bg-light d-flex align-items-center gap-2">
+                        <input class="form-check-input ms-0 me-2" type="radio" asp-for="PaymentMethod" value="@PaymentMethod.BankTransfer" id="pmTransfer" onchange="togglePaymentMethod('BankTransfer')" />
+                        <label class="form-check-label fw-semibold" for="pmTransfer">
+                            <i class="bi bi-qr-code-scan me-1 text-primary fs-5"></i> Chuyển khoản VietQR
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Cash Payment Section -->
+                <div id="cashSection" class="p-3 border rounded-3 bg-white mb-4">
+                    <div class="mb-3">
+                        <label asp-for="CashGiven" class="form-label small fw-semibold">Tiền khách đưa (VNĐ) *</label>
+                        <input asp-for="CashGiven" id="cashGivenInput" type="number" step="1000" class="form-control form-control-lg text-end fw-bold text-success" oninput="calculateChange()" />
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                        <span class="small fw-semibold text-muted">Tiền thối lại khách:</span>
+                        <strong class="fs-5 text-danger" id="changeAmountDisplay">0 VNĐ</strong>
+                    </div>
+                </div>
+
+                <!-- VietQR Payment Section -->
+                <div id="qrSection" class="p-3 border rounded-3 bg-white mb-4 text-center" style="display: none;">
+                    <div class="small fw-bold text-dark mb-2">Quét mã VietQR bằng bất kỳ App Ngân hàng nào</div>
+                    <img src="@Model.VietQrUrl" alt="VietQR Thanh Toán" class="img-fluid rounded border shadow-sm mb-2" style="max-height: 240px;" />
+                    <div class="small text-muted">
+                        Số tiền: <strong class="text-danger">@Model.Invoice.FinalAmount.ToString("N0") VNĐ</strong> &bull; Nội dung: <strong>THANHTOAN @Model.Invoice.OrderCode</strong>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-sen-primary w-100 py-3 fw-bold fs-6 shadow">
+                    <i class="bi bi-check2-circle me-1"></i> Xác Nhận Thu Tiền & In Hóa Đơn (BM05)
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function togglePaymentMethod(method) {
+            const cashSec = document.getElementById('cashSection');
+            const qrSec = document.getElementById('qrSection');
+
+            if (method === 'Cash') {
+                cashSec.style.display = 'block';
+                qrSec.style.display = 'none';
+            } else {
+                cashSec.style.display = 'none';
+                qrSec.style.display = 'block';
+            }
+        }
+
+        function calculateChange() {
+            const finalAmount = parseFloat(document.getElementById('finalAmountDisplay').getAttribute('data-value')) || 0;
+            const cashGiven = parseFloat(document.getElementById('cashGivenInput').value) || 0;
+            const change = cashGiven - finalAmount;
+
+            const changeDisplay = document.getElementById('changeAmountDisplay');
+            if (change >= 0) {
+                changeDisplay.textContent = change.toLocaleString('vi-VN') + ' VNĐ';
+                changeDisplay.className = 'fs-5 text-success';
+            } else {
+                changeDisplay.textContent = 'Còn thiếu ' + Math.abs(change).toLocaleString('vi-VN') + ' VNĐ';
+                changeDisplay.className = 'fs-5 text-danger';
+            }
+        }
+
+        calculateChange();
+    </script>
+}

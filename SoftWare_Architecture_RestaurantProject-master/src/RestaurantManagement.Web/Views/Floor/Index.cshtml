@@ -1,0 +1,333 @@
+@model FloorIndexViewModel
+@{
+    ViewData["Title"] = "Sơ đồ bàn & Trạng thái phục vụ (BM03)";
+    var allTables = Model.FloorPlan.SelectMany(a => a.Tables).ToList();
+    var totalTables = allTables.Count;
+    var availableCount = allTables.Count(t => t.Status == TableStatus.Available && string.IsNullOrEmpty(t.BookingCustomer));
+    var occupiedCount = allTables.Count(t => t.Status == TableStatus.Occupied || t.Status == TableStatus.PreCheck);
+    var reservedCount = allTables.Count(t => !string.IsNullOrEmpty(t.BookingCustomer));
+    var cleaningCount = allTables.Count(t => t.Status == TableStatus.Cleaning);
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h3 class="fw-bold mb-1 brand-serif">Sơ Đồ Bàn Ăn (BM03)</h3>
+        <p class="text-muted small mb-0">Quản lý trực quan 40 bàn tại 4 phân khu & điều phối dịch vụ khách</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-clockwise me-1"></i> Làm mới sơ đồ
+        </a>
+        <a asp-controller="Booking" asp-action="Search" class="btn btn-sm btn-sen-primary">
+            <i class="bi bi-calendar-plus me-1"></i> Đặt bàn mới
+        </a>
+    </div>
+</div>
+
+<!-- Status Summary Counters -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card card-senviet p-3 border-start border-success border-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted fw-semibold">Bàn Trống Sẵn Sàng</small>
+                    <div class="h3 fw-bold text-success mb-0">@availableCount</div>
+                </div>
+                <div class="fs-1 text-success opacity-50"><i class="bi bi-check2-circle"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-senviet p-3 border-start border-danger border-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted fw-semibold">Đang Có Khách</small>
+                    <div class="h3 fw-bold text-danger mb-0">@occupiedCount</div>
+                </div>
+                <div class="fs-1 text-danger opacity-50"><i class="bi bi-people-fill"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-senviet p-3 border-start border-primary border-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted fw-semibold">Đã Cọc Đặt Chỗ</small>
+                    <div class="h3 fw-bold text-primary mb-0">@reservedCount</div>
+                </div>
+                <div class="fs-1 text-primary opacity-50"><i class="bi bi-bookmark-check-fill"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-senviet p-3 border-start border-warning border-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted fw-semibold">Đang Dọn Dẹp</small>
+                    <div class="h3 fw-bold text-warning-emphasis mb-0">@cleaningCount</div>
+                </div>
+                <div class="fs-1 text-warning opacity-50"><i class="bi bi-brush-fill"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Zone Navigation Pills & Filter -->
+<div class="card card-senviet p-3 mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <ul class="nav nav-pills gap-1" id="zoneTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link @(Model.SelectedAreaId == null ? "active bg-danger" : "text-dark")" asp-action="Index">
+                    <i class="bi bi-grid-fill me-1"></i> Tất cả phân khu (40 bàn)
+                </a>
+            </li>
+            @foreach (var area in Model.FloorPlan)
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(Model.SelectedAreaId == area.AreaId ? "active bg-danger" : "text-dark")" asp-action="Index" asp-route-areaId="@area.AreaId">
+                        @area.AreaName (@area.Tables.Count)
+                    </a>
+                </li>
+            }
+        </ul>
+
+        <!-- Legend -->
+        <div class="d-flex flex-wrap gap-2 small">
+            <span class="badge badge-status badge-status-Available"><i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i> Trống</span>
+            <span class="badge badge-status badge-status-Occupied"><i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i> Có khách</span>
+            <span class="badge badge-status badge-status-Reserved"><i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i> Đã cọc</span>
+            <span class="badge badge-status badge-status-Cleaning"><i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i> Đang dọn</span>
+        </div>
+    </div>
+</div>
+
+<!-- Table Grids grouped by Area -->
+@foreach (var area in Model.FloorPlan.Where(a => Model.SelectedAreaId == null || a.AreaId == Model.SelectedAreaId))
+{
+    <div class="mb-4">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <h5 class="fw-bold mb-0 text-dark">@area.AreaName</h5>
+            <span class="badge bg-secondary rounded-pill" style="font-size: 0.75rem;">@area.Tables.Count bàn</span>
+            @if (!string.IsNullOrEmpty(area.Description))
+            {
+                <small class="text-muted ms-2">&bull; @area.Description</small>
+            }
+        </div>
+
+        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3">
+            @foreach (var table in area.Tables)
+            {
+                var isReserved = !string.IsNullOrEmpty(table.BookingCustomer);
+                var statusClass = isReserved ? "table-status-Reserved" : $"table-status-{table.Status}";
+                var statusBadgeClass = isReserved ? "badge-status-Reserved" : $"badge-status-{table.Status}";
+                var statusTitle = isReserved ? "Đã đặt" : table.Status switch
+                {
+                    TableStatus.Available => "Trống",
+                    TableStatus.Occupied => "Có khách",
+                    TableStatus.PreCheck => "Tạm tính",
+                    TableStatus.Cleaning => "Đang dọn",
+                    _ => "Bảo trì"
+                };
+
+                <div class="col">
+                    <div class="card table-card @statusClass h-100 shadow-sm">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="fw-bold fs-5">@table.TableNumber</span>
+                            <span class="badge badge-status @statusBadgeClass" style="font-size: 0.7rem;">
+                                @statusTitle
+                            </span>
+                        </div>
+
+                        <div class="small mb-3">
+                            <div class="text-muted"><i class="bi bi-people me-1"></i>Sức chứa: <strong>@table.Capacity khách</strong></div>
+                            @if (table.Status == TableStatus.Occupied || table.Status == TableStatus.PreCheck)
+                            {
+                                <div class="text-danger fw-semibold mt-1">
+                                    <i class="bi bi-receipt me-1"></i>@table.CurrentOrderCode
+                                </div>
+                            }
+                            else if (isReserved)
+                            {
+                                <div class="text-primary fw-semibold mt-1 text-truncate">
+                                    <i class="bi bi-person me-1"></i>@table.BookingCustomer
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Action Buttons on Card -->
+                        <div class="mt-auto pt-2 border-top border-black border-opacity-10 d-flex flex-column gap-1">
+                            @if (isReserved)
+                            {
+                                <button type="button" class="btn btn-sm btn-primary w-100 fw-semibold" onclick="openCheckInForTable(@table.Id, '@table.TableNumber')">
+                                    <i class="bi bi-check2-circle me-1"></i> Nhận bàn khách đặt
+                                </button>
+                            }
+                            else if (table.Status == TableStatus.Available)
+                            {
+                                <button type="button" class="btn btn-sm btn-success w-100 fw-semibold" onclick="openWalkInModal(@table.Id, '@table.TableNumber', @table.Capacity)">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i> Xếp khách vãng lai
+                                </button>
+                            }
+                            else if (table.Status == TableStatus.Occupied || table.Status == TableStatus.PreCheck)
+                            {
+                                <a asp-controller="Order" asp-action="Table" asp-route-tableId="@table.Id" class="btn btn-sm btn-danger w-100 fw-semibold">
+                                    <i class="bi bi-card-checklist me-1"></i> Gọi món (BM01)
+                                </a>
+                            }
+                            else if (table.Status == TableStatus.Cleaning)
+                            {
+                                <form asp-action="CompleteCleaning" method="post" class="w-100">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="tableId" value="@table.Id" />
+                                    <button type="submit" class="btn btn-sm btn-warning w-100 fw-semibold text-dark">
+                                        <i class="bi bi-check-lg me-1"></i> Đã dọn xong
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<!-- Today's Bookings Collapsible Section -->
+<div class="card card-senviet p-4 mb-4 mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-calendar-check me-2 text-primary"></i>Danh Sách Khách Đặt Bàn Hôm Nay</h5>
+            <small class="text-muted">Các lượt đặt bàn cần tiếp đón trong ngày</small>
+        </div>
+        <span class="badge bg-primary rounded-pill">@Model.TodayBookings.Count lịch hẹn</span>
+    </div>
+
+    @if (!Model.TodayBookings.Any())
+    {
+        <div class="text-center py-4 text-muted">
+            <i class="bi bi-calendar-x display-6 mb-2 d-block opacity-50"></i>
+            Chưa có lịch đặt bàn nào cho hôm nay.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã Booking</th>
+                        <th>Khách hàng</th>
+                        <th>Số điện thoại</th>
+                        <th>Bàn & Khu vực</th>
+                        <th>Số khách</th>
+                        <th>Giờ hẹn</th>
+                        <th>Tiền cọc</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var b in Model.TodayBookings)
+                    {
+                        <tr>
+                            <td><strong>@b.BookingCode</strong></td>
+                            <td class="fw-semibold">@b.CustomerName</td>
+                            <td>@b.PhoneNumber</td>
+                            <td><span class="badge bg-light text-dark border">Bàn @b.TableNumber - @b.AreaName</span></td>
+                            <td>@b.GuestCount người</td>
+                            <td>@b.BookingDateTimeUtc.ToLocalTime().ToString("HH:mm")</td>
+                            <td><span class="text-success fw-semibold">@b.DepositAmount.ToString("N0") VNĐ</span></td>
+                            <td>
+                                <span class="badge @(b.Status == BookingStatus.Confirmed ? "bg-success" : "bg-warning text-dark")">
+                                    @b.Status
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                @if (b.Status == BookingStatus.Confirmed)
+                                {
+                                    <form asp-action="CheckInBooking" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="BookingId" value="@b.BookingId" />
+                                        <input type="hidden" name="TableCode" value="@b.TableNumber" />
+                                        <input type="hidden" name="CustomerName" value="@b.CustomerName" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            <i class="bi bi-check-circle me-1"></i> Khách vào bàn
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Modal Seat Walk-In -->
+<div class="modal fade" id="walkInModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content card-senviet">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="walkInModalTitle">Xếp Khách Vào Bàn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="SeatWalkIn" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="walkInTableId" name="TableId" />
+                    <input type="hidden" id="walkInTableCode" name="TableCode" />
+                    <input type="hidden" id="walkInCapacity" name="Capacity" />
+
+                    <div class="alert alert-light border mb-3">
+                        Bàn đang chọn: <strong id="walkInDisplayCode" class="text-danger"></strong>
+                        &bull; Sức chứa: <strong id="walkInDisplayCap"></strong> người
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Số lượng khách dùng bữa *</label>
+                        <input type="number" name="GuestCount" id="walkInGuestCount" class="form-control" min="1" max="30" value="2" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Tên khách hàng (tùy chọn)</label>
+                        <input type="text" name="CustomerName" class="form-control" placeholder="Khách vãng lai..." />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Số điện thoại (tùy chọn, để tích điểm)</label>
+                        <input type="text" name="PhoneNumber" class="form-control" placeholder="09xxxxxxxx..." />
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-sen-primary fw-semibold">
+                        <i class="bi bi-check2 me-1"></i> Xác nhận mở bàn & Gọi món
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openWalkInModal(tableId, tableCode, capacity) {
+            document.getElementById('walkInTableId').value = tableId;
+            document.getElementById('walkInTableCode').value = tableCode;
+            document.getElementById('walkInCapacity').value = capacity;
+            document.getElementById('walkInDisplayCode').textContent = tableCode;
+            document.getElementById('walkInDisplayCap').textContent = capacity;
+            document.getElementById('walkInGuestCount').value = capacity > 2 ? 4 : 2;
+
+            const modal = new bootstrap.Modal(document.getElementById('walkInModal'));
+            modal.show();
+        }
+
+        function openCheckInForTable(tableId, tableCode) {
+            // Find in today bookings
+            alert('Khách hàng đã cọc bàn ' + tableCode + '. Vui lòng kiểm tra danh sách đặt bàn bên dưới để bấm "Khách vào bàn".');
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+    </script>
+}

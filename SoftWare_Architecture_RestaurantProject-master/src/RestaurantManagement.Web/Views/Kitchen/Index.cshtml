@@ -1,0 +1,153 @@
+@model List<OrderDto>
+@{
+    ViewData["Title"] = "Màn hình bếp & Pha chế KDS";
+    var selectedStation = ViewBag.SelectedStation as KitchenStation?;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1 brand-serif text-dark"><i class="bi bi-fire text-danger me-2"></i>Màn Hình Bếp & Pha Chế (KDS)</h3>
+        <p class="text-muted small mb-0">Điều phối chế biến món ăn và đồ uống theo trạm bếp theo thời gian thực</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-clockwise me-1"></i> Làm mới đơn
+        </a>
+    </div>
+</div>
+
+<!-- Station Filter Tabs -->
+<div class="card card-senviet p-3 mb-4">
+    <ul class="nav nav-pills gap-1">
+        <li class="nav-item">
+            <a class="nav-link @(selectedStation == null ? "active bg-danger" : "text-dark")" asp-action="Index">
+                <i class="bi bi-grid-fill me-1"></i> Tất cả các trạm
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(selectedStation == KitchenStation.HotKitchen ? "active bg-danger" : "text-dark")" asp-action="Index" asp-route-station="@KitchenStation.HotKitchen">
+                <i class="bi bi-fire me-1 text-danger"></i> Bếp Nóng (Hot Kitchen)
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(selectedStation == KitchenStation.ColdKitchen ? "active bg-danger" : "text-dark")" asp-action="Index" asp-route-station="@KitchenStation.ColdKitchen">
+                <i class="bi bi-snow me-1 text-info"></i> Bếp Lạnh / Khai vị (Cold Kitchen)
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(selectedStation == KitchenStation.Bar ? "active bg-danger" : "text-dark")" asp-action="Index" asp-route-station="@KitchenStation.Bar">
+                <i class="bi bi-cup-straw me-1 text-warning"></i> Quầy Bar / Đồ uống
+            </a>
+        </li>
+    </ul>
+</div>
+
+<!-- Orders Grid -->
+@if (!Model.Any())
+{
+    <div class="card card-senviet p-5 text-center">
+        <div class="display-4 text-muted mb-3"><i class="bi bi-check2-circle"></i></div>
+        <h5 class="fw-bold text-dark">Hiện không có đơn món nào đang chờ chế biến!</h5>
+        <p class="text-muted small mb-0">Tất cả các món đã được phục vụ ra bàn hoặc chưa có order mới.</p>
+    </div>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        @foreach (var order in Model)
+        {
+            var filteredItems = order.Items
+                .Where(i => selectedStation == null || i.KitchenStation == selectedStation)
+                .Where(i => i.Status != OrderItemStatus.Served && i.Status != OrderItemStatus.Cancelled)
+                .ToList();
+
+            if (!filteredItems.Any()) continue;
+
+            <div class="col">
+                <div class="card card-senviet h-100 shadow-sm border-top border-4 border-warning">
+                    <div class="p-3 border-bottom d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="fs-5 fw-bold text-dark">Bàn @order.TableNumber</span>
+                            <span class="badge bg-light text-muted border ms-1">@order.AreaName</span>
+                            <div class="small text-muted mt-1">
+                                Order: <strong>@order.OrderCode</strong> &bull; @order.CreatedAtUtc.ToLocalTime().ToString("HH:mm")
+                            </div>
+                        </div>
+                        <span class="badge bg-warning text-dark">@filteredItems.Count món</span>
+                    </div>
+
+                    <div class="list-group list-group-flush p-2 flex-grow-1">
+                        @foreach (var item in filteredItems)
+                        {
+                            <div class="list-group-item px-2 py-3 border-0 border-bottom">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <span class="fw-bold fs-6 text-dark">@item.Quantity x @item.ItemName</span>
+                                    <span class="badge @(item.Status == OrderItemStatus.Cooking ? "bg-warning text-dark" : item.Status == OrderItemStatus.Ready ? "bg-success" : "bg-secondary")">
+                                        @item.Status switch
+                                        {
+                                            OrderItemStatus.Pending => "Chờ nấu",
+                                            OrderItemStatus.Cooking => "Đang nấu",
+                                            OrderItemStatus.Ready => "Đã xong",
+                                            _ => item.Status.ToString()
+                                        }
+                                    </span>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(item.Note))
+                                {
+                                    <div class="alert alert-warning py-1 px-2 small mb-2 fst-italic">
+                                        <i class="bi bi-pencil me-1"></i> @item.Note
+                                    </div>
+                                }
+
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <span class="badge bg-light text-muted border" style="font-size: 0.65rem;">@item.KitchenStation</span>
+
+                                    <!-- Status update buttons -->
+                                    <div class="btn-group btn-group-sm">
+                                        @if (item.Status == OrderItemStatus.Pending)
+                                        {
+                                            <form asp-action="UpdateStatus" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="orderDetailId" value="@item.Id" />
+                                                <input type="hidden" name="status" value="@OrderItemStatus.Cooking" />
+                                                <input type="hidden" name="station" value="@selectedStation" />
+                                                <button type="submit" class="btn btn-sm btn-outline-warning text-dark fw-semibold">
+                                                    <i class="bi bi-play-fill"></i> Nấu
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (item.Status == OrderItemStatus.Cooking)
+                                        {
+                                            <form asp-action="UpdateStatus" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="orderDetailId" value="@item.Id" />
+                                                <input type="hidden" name="status" value="@OrderItemStatus.Ready" />
+                                                <input type="hidden" name="station" value="@selectedStation" />
+                                                <button type="submit" class="btn btn-sm btn-success fw-semibold">
+                                                    <i class="bi bi-check-lg"></i> Xong
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (item.Status == OrderItemStatus.Ready)
+                                        {
+                                            <form asp-action="UpdateStatus" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="orderDetailId" value="@item.Id" />
+                                                <input type="hidden" name="status" value="@OrderItemStatus.Served" />
+                                                <input type="hidden" name="station" value="@selectedStation" />
+                                                <button type="submit" class="btn btn-sm btn-outline-primary fw-semibold">
+                                                    <i class="bi bi-send-check"></i> Đã bưng
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
