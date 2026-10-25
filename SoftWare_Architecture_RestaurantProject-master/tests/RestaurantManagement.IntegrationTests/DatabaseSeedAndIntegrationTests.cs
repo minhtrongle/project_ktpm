@@ -186,6 +186,24 @@ public class DatabaseSeedAndIntegrationTests
         ));
         Assert.True(payResult.IsSuccess);
 
+        var reportDate = new DateOnly(2030, 6, 15);
+        var reportTimestampUtc = new DateTime(2030, 6, 14, 17, 30, 0, DateTimeKind.Utc);
+        var paidInvoice = await dbContext.Invoices.FirstAsync(i => i.OrderId == order.Id);
+        paidInvoice.CreatedAt = reportTimestampUtc;
+        var orderDetails = await dbContext.OrderDetails
+            .Where(detail => detail.OrderId == order.Id)
+            .ToListAsync();
+        orderDetails[0].CreatedAt = reportTimestampUtc;
+        await dbContext.SaveChangesAsync();
+
+        var reportService = sp.GetRequiredService<IReportService>();
+        var revenueReport = await reportService.GetRevenueReportAsync(reportDate, reportDate);
+        Assert.Contains(revenueReport.DailyBreakdown, day => day.Date == reportDate && day.InvoicesCount > 0);
+
+        var bestSellersReport = await reportService.GetBestSellersReportAsync(reportDate, reportDate);
+        Assert.Contains(bestSellersReport.TopSellers, item =>
+            item.MenuItemId == orderDetails[0].MenuItemId && item.QuantitySold >= orderDetails[0].Quantity);
+
         // Bàn phải chuyển sang trạng thái Cleaning
         var tableAfterPay = await tableService.GetTableByIdAsync(chosenTable.TableId);
         Assert.True(tableAfterPay.IsSuccess);

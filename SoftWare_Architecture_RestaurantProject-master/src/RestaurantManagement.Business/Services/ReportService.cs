@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using RestaurantManagement.Business.DTOs;
+using RestaurantManagement.Business.Options;
 using RestaurantManagement.Common.Enums;
 using RestaurantManagement.DataAccess.UnitOfWork;
 
@@ -14,19 +16,20 @@ public interface IReportService
 public class ReportService : IReportService
 {
     private readonly IUnitOfWork _uow;
+    private readonly TimeZoneInfo _timeZone;
 
-    public ReportService(IUnitOfWork uow)
+    public ReportService(IUnitOfWork uow, IOptions<RestaurantRulesOptions> options)
     {
         _uow = uow;
+        _timeZone = TimeZoneInfo.FindSystemTimeZoneById(options.Value.TimeZone);
     }
 
     public async Task<RevenueReportDto> GetRevenueReportAsync(DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default)
     {
-        var fromUtc = fromDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-        var toUtc = toDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+        var (fromUtc, toUtcExclusive) = GetUtcRange(fromDate, toDate);
 
         var invoices = await _uow.Invoices.GetAll()
-            .Where(i => i.Status == InvoiceStatus.Paid && i.CreatedAt >= fromUtc && i.CreatedAt <= toUtc)
+            .Where(i => i.Status == InvoiceStatus.Paid && i.CreatedAt >= fromUtc && i.CreatedAt < toUtcExclusive)
             .OrderBy(i => i.CreatedAt)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
@@ -41,7 +44,7 @@ public class ReportService : IReportService
         var transferTotal = invoices.Where(i => i.PaymentMethod == PaymentMethod.BankTransfer).Sum(i => i.FinalAmount);
 
         var dailyBreakdown = invoices
-            .GroupBy(i => DateOnly.FromDateTime(i.CreatedAt))
+            .GroupBy(i => DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(i.CreatedAt, _timeZone)))
             .Select(g => new DailyRevenueDto(
                 g.Key,
                 g.Count(),
@@ -71,8 +74,7 @@ public class ReportService : IReportService
 
     public async Task<BestSellersReportDto> GetBestSellersReportAsync(DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default)
     {
-        var fromUtc = fromDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-        var toUtc = toDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+        var (fromUtc, toUtcExclusive) = GetUtcRange(fromDate, toDate);
 
         // Lấy tất cả món ăn trong thực đơn để đảm bảo không sót món có doanh số 0
         var allMenuItems = await _uow.MenuItems.GetAll()
@@ -84,7 +86,7 @@ public class ReportService : IReportService
             .Include(d => d.Order)
             .Where(d => d.Status != OrderItemStatus.Cancelled
                      && d.CreatedAt >= fromUtc
-                     && d.CreatedAt <= toUtc
+                     && d.CreatedAt < toUtcExclusive
                      && d.Order.ClosedAt != null)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
@@ -127,6 +129,20 @@ public class ReportService : IReportService
             toDate,
             topSellers,
             lowSales
+        );
+    }
+
+    private (DateTime FromUtc, DateTime ToUtcExclusive) GetUtcRange(DateOnly fromDate, DateOnly toDate)
+    {
+        if (toDate < fromDate)
+            throw new ArgumentException("The end date must be on or after the start date.", nameof(toDate));
+
+        var fromLocal = DateTime.SpecifyKind(fromDate.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
+        var toLocalExclusive = DateTime.SpecifyKind(toDate.AddDays(1).ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
+
+        return (
+            TimeZoneInfo.ConvertTimeToUtc(fromLocal, _timeZone),
+            TimeZoneInfo.ConvertTimeToUtc(toLocalExclusive, _timeZone)
         );
     }
 }
