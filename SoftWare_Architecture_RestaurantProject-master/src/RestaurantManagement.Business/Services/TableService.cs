@@ -37,15 +37,25 @@ public class TableService : ITableService
         // Lấy thông tin order đang active (chưa đóng) cho các bàn
         var activeOrders = await _uow.Orders.GetAll()
             .Where(o => o.ClosedAt == null)
+            .OrderByDescending(o => o.CreatedAt)
+            .ThenByDescending(o => o.Id)
             .AsNoTracking()
-            .ToDictionaryAsync(o => o.TableId, o => o, cancellationToken);
+            .ToListAsync(cancellationToken);
+        var activeOrdersByTable = activeOrders
+            .GroupBy(o => o.TableId)
+            .ToDictionary(group => group.Key, group => group.First());
 
         // Lấy thông tin booking hôm nay
         var today = DateTime.UtcNow.Date;
         var activeBookings = await _uow.Bookings.GetAll()
             .Where(b => b.Status == BookingStatus.Confirmed && b.StartTime >= today && b.StartTime < today.AddDays(1))
+            .OrderBy(b => b.StartTime)
+            .ThenBy(b => b.Id)
             .AsNoTracking()
-            .ToDictionaryAsync(b => b.TableId, b => b.CustomerName, cancellationToken);
+            .ToListAsync(cancellationToken);
+        var activeBookingsByTable = activeBookings
+            .GroupBy(b => b.TableId)
+            .ToDictionary(group => group.Key, group => group.First().CustomerName);
 
         return areas.Select(area => new AreaWithTablesDto(
             area.Id,
@@ -53,8 +63,8 @@ public class TableService : ITableService
             area.Description,
             area.Tables.OrderBy(t => t.TableNumber).Select(table =>
             {
-                activeOrders.TryGetValue(table.Id, out var ord);
-                activeBookings.TryGetValue(table.Id, out var customerName);
+                activeOrdersByTable.TryGetValue(table.Id, out var ord);
+                activeBookingsByTable.TryGetValue(table.Id, out var customerName);
 
                 return new TableDto(
                     table.Id,
