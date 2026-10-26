@@ -39,13 +39,13 @@
                         <td><code>@s.Username</code></td>
                         <td>
                             <span class="badge @(s.Role == StaffRole.Manager ? "bg-danger" : s.Role == StaffRole.Cashier ? "bg-success" : s.Role == StaffRole.Kitchen ? "bg-warning text-dark" : "bg-primary")">
-                                @s.Role switch
+                                @(s.Role switch
                                 {
                                     StaffRole.Manager => "Quản lý",
                                     StaffRole.Cashier => "Thu ngân",
                                     StaffRole.Kitchen => "Đầu bếp",
                                     _ => "Phục vụ bàn"
-                                }
+                                })
                             </span>
                         </td>
                         <td>@s.PhoneNumber</td>
